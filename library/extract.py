@@ -56,7 +56,7 @@ def run_extraction(campaign_path, working_dir_name='working_dir'):
         assert np.array_equal(time_windows, time_windows_tmp), 'ERROR: Time windows mismatch!'
 
         # Extract excitatory spikes
-        _ = extract_spikes(sim, neuron_info, 'EXC', cut_start, cut_end, save_path, fn_spec=str(sidx))
+        _ = extract_spikes(sim_tmp, neuron_info, 'EXC', cut_start, cut_end, save_path, fn_spec=str(sidx))
 
     print(f'INFO: {sidx + 1} spike files written to "{save_path}"')
 

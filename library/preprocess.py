@@ -8,12 +8,13 @@ import multiprocessing
 import numpy as np
 import os
 import pandas as pd
+import shutil
 import time
 import tqdm
 from scipy.ndimage import gaussian_filter1d
 
 
-def run_preprocessing(working_dir, spike_file_names, sigma=10.0, pool_size=10):
+def run_preprocessing(working_dir, spike_file_names, sigma=10.0, mean_centered=True, pool_size=10):
     """ Run preprocessing (filtering, mean-centering) of EXC spike trains. [PARALLEL IMPLEMENTATION] """
 
     spike_files = [os.path.join(working_dir, fn) for fn in spike_file_names]
@@ -31,10 +32,14 @@ def run_preprocessing(working_dir, spike_file_names, sigma=10.0, pool_size=10):
     #     spikes, _, _ = load_spike_trains(spike_file)
     #     spike_signals, t_bins = extract_binned_spike_signals(spikes, gids, t_max, bin_size=1.0, save_path=None, fn_spec=None)
     #     spike_signals = filter_spike_signals(spike_signals, gids, t_bins, sigma, save_path=None, fn_spec=None)
-    #     spike_signals = mean_center_spike_signals(spike_signals, gids, t_bins, save_path=os.path.split(spike_file)[0], fn_spec=f'exc_{idx}__tmp__')
+    #     if mean_centered:
+    #         spike_signals = mean_center_spike_signals(spike_signals, gids, t_bins, save_path=None, fn_spec=None)
+    #     save_path=os.path.split(spike_file)[0]
+    #     fn_spec=f'_exc_{idx}__tmp__'
+    #     np.savez_compressed(os.path.join(save_path, f'spike_signals{fn_spec}.npz'), spike_signals=spike_signals, t_bins=t_bins, gids=gids, sigma=sigma, mean_centered=mean_centered)
 
     # [PARALLEL IMPLEMENTATION]
-    fct_args = [(f, gids, t_max, sigma) for f in spike_files]
+    fct_args = [(f, gids, t_max, sigma, mean_centered) for f in spike_files]
     t0 = time.time()
     with multiprocessing.Pool(pool_size) as pool:
         pool.map(proc_fct, fct_args)
@@ -43,17 +48,23 @@ def run_preprocessing(working_dir, spike_file_names, sigma=10.0, pool_size=10):
 
 def proc_fct(fct_args):
     """ Processing function for parallel implementation. """
-    spike_file, gids, t_max, sigma = fct_args
+    spike_file, gids, t_max, sigma, mean_centered = fct_args
 
     fidx = int(os.path.splitext(spike_file)[0].split('_')[-1])
     spikes, _, _ = load_spike_trains(spike_file)
     spike_signals, t_bins = extract_binned_spike_signals(spikes, gids, t_max, bin_size=1.0, save_path=None, fn_spec=None)
     spike_signals = filter_spike_signals(spike_signals, gids, t_bins, sigma, save_path=None, fn_spec=None)
-    spike_signals = mean_center_spike_signals(spike_signals, gids, t_bins, save_path=os.path.split(spike_file)[0], fn_spec=f'exc_{fidx}__tmp__')
+    if mean_centered:
+        spike_signals = mean_center_spike_signals(spike_signals, gids, t_bins, save_path=None, fn_spec=None)
+
+    save_path=os.path.split(spike_file)[0]
+    fn_spec=f'_exc_{fidx}__tmp__'
+    np.savez_compressed(os.path.join(save_path, f'spike_signals{fn_spec}.npz'), spike_signals=spike_signals, t_bins=t_bins, gids=gids, sigma=sigma, mean_centered=mean_centered)
 
 
 def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name, split_by_gid=False):
-    """ Merge processed EXC spike signals into .h5 store as separate data sets sims and optionally, GIDs. [WITH COMPRESSION] """
+    """ Creates new .h5 data store and merges processed EXC spike signals into .h5 store as separate
+        data sets sims and optionally, GIDs. [WITH COMPRESSION] """
 
     spike_files = [os.path.join(working_dir, fn) for fn in processed_file_names]
 
@@ -71,6 +82,8 @@ def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name,
 
     t_bins = None
     gids = None
+    sigma = None
+    mean_centered = None
     for spike_file in tqdm.tqdm(spike_files):
         fidx = int(os.path.splitext(spike_file)[0].replace('__tmp__', '').split('_')[-1])
         sp_dict = np.load(spike_file)
@@ -82,6 +95,14 @@ def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name,
             gids = sp_dict['gids']
         else:
             assert np.array_equal(gids, sp_dict['gids']), 'ERROR: GIDs mismatch!'
+        if sigma is None:
+            sigma = sp_dict['sigma']
+        else:
+            assert sigma == sp_dict['sigma'], 'ERROR: Sigma mismatch!'
+        if mean_centered is None:
+            mean_centered = sp_dict['mean_centered']
+        else:
+            assert mean_centered == sp_dict['mean_centered'], 'ERROR: mean_centered mismatch!'
         spike_signals = sp_dict['spike_signals']
         assert spike_signals.shape[0] == len(gids), 'ERROR: Spike signal shape mismatch!'
 
@@ -94,6 +115,8 @@ def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name,
 
     h5f.create_dataset('t_bins', data=t_bins)
     h5f.create_dataset('gids', data=gids)
+    h5f.create_dataset('sigma', data=sigma)
+    h5f.create_dataset('mean_centered', data=mean_centered)
     h5f.close()
 
     print(f'INFO: {len(spike_files)} files merged into "{h5_file}"')
@@ -160,3 +183,98 @@ def mean_center_spike_signals(spike_signals, gids, t_bins, save_path=None, fn_sp
 
     return spike_signals
 
+
+def run_rate_extraction(working_dir, spike_file_names, pool_size=10):
+    """ Run extration of EXC firing rates. [PARALLEL IMPLEMENTATION] """
+
+    spike_files = [os.path.join(working_dir, fn) for fn in spike_file_names]
+
+    neuron_info = pd.read_pickle(os.path.join(working_dir, 'neuron_info.pickle'))
+    gids = neuron_info[neuron_info['synapse_class'] == 'EXC'].index # Excitatory GIDs extracted from neuron info table
+
+    # Run firing rate extraction
+    # [SINGLE-THREAD IMPLEMENTATION]
+    # for idx in tqdm.tqdm(range(len(spike_files))):
+    #     spike_file = spike_files[idx]
+    #     spikes, _, _ = load_spike_trains(spike_file)
+    #     firing_rates = extract_firing_rates(spikes, gids, save_path=os.path.split(spike_file)[0], fn_spec=f'exc_{idx}__tmp__')
+
+    # [PARALLEL IMPLEMENTATION]
+    fct_args = [(f, gids) for f in spike_files]
+    t0 = time.time()
+    with multiprocessing.Pool(pool_size) as pool:
+        pool.map(rate_proc_fct, fct_args)
+    print(f'Finished firing rate extraction in {time.time() - t0:.3f}s')
+
+
+def rate_proc_fct(fct_args):
+    """ Firing rate extraction function for parallel implementation. """
+    spike_file, gids = fct_args
+
+    fidx = int(os.path.splitext(spike_file)[0].split('_')[-1])
+    spikes, _, _ = load_spike_trains(spike_file)
+    firing_rates = extract_firing_rates(spikes, gids, save_path=os.path.split(spike_file)[0], fn_spec=f'exc_{fidx}__tmp__')
+
+
+def extract_firing_rates(spikes, gids, save_path=None, fn_spec=None):
+    """ Computes firing rates based on mean inverse inter-spike intervals. """
+
+    isi = [np.diff(np.sort(spikes[spikes[:, 1] == gid, 0])).tolist() for gid in gids] # Inter-spike intervals in ms
+    firing_rates = np.array([1e3 / np.mean(_isi) for _isi in isi])
+
+    if fn_spec is None:
+        fn_spec = ''
+    if len(fn_spec) > 0:
+        fn_spec = f'_{fn_spec}'
+
+    if save_path is not None:
+        np.savez(os.path.join(save_path, f'firing_rates{fn_spec}.npz'), firing_rates=firing_rates, gids=gids)
+
+    return firing_rates
+
+
+def merge_rates_to_h5_data_store(working_dir, rate_file_names, data_store_name, do_overwrite=False):
+    """ Merges EXC firing rates into existing .h5 store as single dataset for all simulations. """
+
+    rate_files = [os.path.join(working_dir, fn) for fn in rate_file_names]
+
+    # Check that all files exist
+    for rate_file in rate_files:
+        assert os.path.exists(rate_file), f'ERROR: Rate file "{rate_file}" missing!'
+
+    # Check that .h5 store already exists
+    h5_file = os.path.join(working_dir, data_store_name + '.h5')
+    assert os.path.exists(h5_file), 'ERROR: h5 store does not exists!'
+
+    # Create backup before writing to data store
+    time_stamp = np.round(time.time()).astype(int).astype(str)
+    shutil.copy(h5_file, os.path.join(working_dir, f'{data_store_name}__BAK_{time_stamp}.h5'))
+
+    # Check if dataset already exists, so not to overwrite (optional)
+    if not do_overwrite:
+        with h5py.File(h5_file, 'r') as h5f:
+            assert not 'firing_rates' in h5f, 'ERROR: Firing rates dataset already exists! Please use "do_overwrite=True" to overwrite.'
+
+    # Merge rates of all simulations
+    gids = None
+    firing_rates = []
+    for rate_file in tqdm.tqdm(rate_files):
+        fidx = int(os.path.splitext(rate_file)[0].replace('__tmp__', '').split('_')[-1])
+        r_dict = np.load(rate_file)
+        if gids is None:
+            gids = r_dict['gids']
+        else:
+            assert np.array_equal(gids, r_dict['gids']), 'ERROR: GIDs mismatch!'
+        r = r_dict['firing_rates']
+        assert len(r) == len(gids), 'ERROR: Rate shape mismatch!'
+        firing_rates.append(r)
+    firing_rates = np.array(firing_rates)
+
+    # Add rates to .h5 store
+    h5f = h5py.File(h5_file, 'r+')
+    h5f.create_dataset('firing_rates', data=firing_rates)
+    h5f.close()
+
+    print(f'INFO: {len(rate_files)} files merged and added to "{h5_file}"')
+
+    return h5_file
