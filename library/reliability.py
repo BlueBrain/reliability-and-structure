@@ -41,6 +41,7 @@ def select_sims_for_cell(gid_index, special_block_index, block_table):
 
 
 def load_spike_signals(file, sim_idx):
+    import h5py
     spike_signals = []
     with h5py.File(file, 'r') as f:
         gids = f['gids'][()]
