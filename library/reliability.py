@@ -18,6 +18,7 @@ def reliability(v1, v2):
 def avg_reliability(v_filt):
     """Computes average reliability between all pairs of trials of a give set.
     v_filt: Array spike trains many simuations of shape N_trials x #neuronss # time_bins"""
+    import itertools
     N_trials = v_filt.shape[0]
     avg_rel = np.zeros(v_filt.shape[1])
     for i, j in itertools.combinations(range(N_trials), 2):
