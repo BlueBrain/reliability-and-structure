@@ -1,5 +1,6 @@
 '''Functions to select simulations, compute reliability and bootstrap samples'''
 import numpy as np
+import tqdm
 
 
 # Functions for reliability computations
