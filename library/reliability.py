@@ -2,6 +2,12 @@
 import numpy as np
 import tqdm
 import os
+import time
+import itertools
+import h5py
+import math
+import random
+
 
 
 # Functions for reliability computations
@@ -18,7 +24,6 @@ def reliability(v1, v2):
 def avg_reliability(v_filt):
     """Computes average reliability between all pairs of trials of a give set.
     v_filt: Array spike trains many simuations of shape N_trials x #neuronss # time_bins"""
-    import itertools
     N_trials = v_filt.shape[0]
     avg_rel = np.zeros(v_filt.shape[1])
     for i, j in itertools.combinations(range(N_trials), 2):
@@ -44,7 +49,7 @@ def select_sims_for_cell(gid_index, special_block_index, block_table):
 
 
 def load_spike_signals(file, sim_idx):
-    import h5py
+
     spike_signals = []
     with h5py.File(file, 'r') as f:
         gids = f['gids'][()]
@@ -57,9 +62,6 @@ def load_spike_signals(file, sim_idx):
 def random_subset_of_combinations(iterable, R, k, seed=0):
     """Returns `R` random samples of
     `k` length combinations of in `iterable`"""
-    import math
-    import random
-    import itertools
     max_combinations = math.comb(len(iterable), k)
     assert max_combinations >= R, 'There are not enough samples to subsample via bootstrap'
     np.random.seed(seed)
@@ -99,19 +101,28 @@ def compute_and_save_reliabity_bootstrap(save_path,
 
     # Load data
     N = selected_sims_index.shape[0]  # Total number of seeds for the bootstrap
+    print("Loading data")
+    start=time.time()
     gids, spike_signals = load_spike_signals(spikes_h5_file, selected_sims_index)
     assert N == spike_signals.shape[0], "Error in the number of simulations loaded"
     assert gids.size == spike_signals.shape[1], "Missmatch on the number of gids and spike signals"
+    print(f'Data loaded and checked correct dimension in {time.time()-start:.2f} sec')
     # Select bootstrap samples, compute reliabilty and save
+    print("Generating combinations for the bootstrap")
     bootstrap_combinations = random_subset_of_combinations(range(N), R, k, seed=bootstrap_seed)
-    print('Loaded files and selected combinations for bootstrap')
+    print("Done")
     for ridx in tqdm.tqdm(range(R)):
         sel_idx = bootstrap_combinations[ridx]
-        spike_signals[sel_idx, :, :]  # Restrict to the k selected simulations
+        print("\nSlicing data")
+        start=time.time()
+        signals=spike_signals[sel_idx, :, :]  # Restrict to the k selected simulations
+        print(f'Done slicing in {time.time()-start:.2f} sec')
         # Paths for saving
         reliab_save_path = os.path.join(save_path, f'reliability_{ridx:03d}.npz')
         if not os.path.exists(reliab_save_path) or force_recomp:
-            reliab = avg_reliability(spike_signals)
+            start=time.time()
+            reliab = avg_reliability(signals)
+            print(f'Reliability for slice computed in in {time.time()-start:.2f} sec')
             # print(reliab.shape, reliab.min(),reliab.max())
             np.savez(reliab_save_path, reliab=reliab, gids=gids,
                      nrn_type=nrn_type, sigma=sigma, mean_centered=mean_centered,
@@ -122,4 +133,3 @@ def compute_and_save_reliabity_bootstrap(save_path,
         if not os.path.exists(rates_file) or force_recomp:
             np.savez(rates_file, rates=rates[:, sel_idx], gids=gids, reliab_paths=reliab_paths, nrn_type=nrn_type,
                      rates_type=rates_type, sel_idx=sel_idx, sim_seeds=sim_seeds[sel_idx])'''
-
