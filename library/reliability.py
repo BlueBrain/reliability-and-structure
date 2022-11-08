@@ -34,7 +34,7 @@ def avg_reliability(v_filt):
     avg_rel = 2 * avg_rel / (N_trials * (N_trials - 1))
     return avg_rel'''
 
-def avg_reliability_scipy(v_filt):
+def avg_reliability(v_filt):
     """Computes average reliability between all pairs of trials of a give set.
         v_filt: Array spike trains many simuations of shape N_trials x #neuronss # time_bins"""
     no_cells=v_filt.shape[1]
