@@ -7,10 +7,13 @@ import itertools
 import h5py
 import math
 import random
+from scipy.spatial import distance
+
 
 
 
 # Functions for reliability computations
+'''These are depracted because they are fast for small arrays but slow for big arrays
 def reliability(v1, v2):
     """v1/v2: spike signals of two simulations/set of neurons.  Arrays of size # neurons x # time_bins"""
     product_of_norms = (np.linalg.norm(v1, axis=1) * np.linalg.norm(v2, axis=1))
@@ -29,7 +32,14 @@ def avg_reliability(v_filt):
     for i, j in itertools.combinations(range(N_trials), 2):
         avg_rel = avg_rel + reliability(v_filt[i, :, :], v_filt[j, :, :])
     avg_rel = 2 * avg_rel / (N_trials * (N_trials - 1))
-    return avg_rel
+    return avg_rel'''
+
+def avg_reliability_scipy(v_filt):
+    """Computes average reliability between all pairs of trials of a give set.
+        v_filt: Array spike trains many simuations of shape N_trials x #neuronss # time_bins"""
+    no_cells=v_filt.shape[1]
+    mean_rels=[(1-distance.pdist(v_filt[:,x,:],'cosine')).mean() for x in range(no_cells)]
+    return np.array(mean_rels)
 
 
 # Functions for indexing block desing and loading selected simulations
