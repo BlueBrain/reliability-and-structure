@@ -98,6 +98,7 @@ def compute_and_save_reliabity_bootstrap(save_path,
     # spikes_h5_file: h5_store containing spike signals and gids
     # selected_sims_index: Indices of the simulations selected for analysis
     # TODO: Would be good to have the rates and the seeds in the file above as it was before changing the format
+    # TODO: FIRST CHECK IF FILES ARE THERE AND THEN SLICE, NOT THE OTHER WAY AROUND ... 
     ### Meta data of the spike_signals
     # sim_seeds: seeds of the simulations in h5_store
     # sigma : sigma for Gaussian kernel in pre-processing
