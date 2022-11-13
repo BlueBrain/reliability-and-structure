@@ -13,27 +13,6 @@ from scipy.spatial import distance
 
 
 # Functions for reliability computations
-'''These are depracted because they are fast for small arrays but slow for big arrays
-def reliability(v1, v2):
-    """v1/v2: spike signals of two simulations/set of neurons.  Arrays of size # neurons x # time_bins"""
-    product_of_norms = (np.linalg.norm(v1, axis=1) * np.linalg.norm(v2, axis=1))
-    mask_to_normalize_non_zero = (product_of_norms != 0)
-    reliability = (v1 * v2).sum(axis=1)
-    reliability[mask_to_normalize_non_zero] = reliability[mask_to_normalize_non_zero] / product_of_norms[
-        mask_to_normalize_non_zero]
-    return reliability
-
-
-def avg_reliability(v_filt):
-    """Computes average reliability between all pairs of trials of a give set.
-    v_filt: Array spike trains many simuations of shape N_trials x #neuronss # time_bins"""
-    N_trials = v_filt.shape[0]
-    avg_rel = np.zeros(v_filt.shape[1])
-    for i, j in itertools.combinations(range(N_trials), 2):
-        avg_rel = avg_rel + reliability(v_filt[i, :, :], v_filt[j, :, :])
-    avg_rel = 2 * avg_rel / (N_trials * (N_trials - 1))
-    return avg_rel'''
-
 def avg_reliability(v_filt):
     """Computes average reliability between all pairs of trials of a give set.
         v_filt: Array spike trains many simuations of shape N_trials x #neuronss # time_bins"""
@@ -58,16 +37,6 @@ def select_sims_for_cell(gid_index, special_block_index, block_table):
     return sim_sel
 
 
-def load_spike_signals(file, sim_idx):
-
-    spike_signals = []
-    with h5py.File(file, 'r') as f:
-        gids = f['gids'][()]
-        for sim_id in sim_idx:
-            spike_signals.append(f['spike_signals_exc'][f'sim_{sim_id}'][()])
-    return gids, np.stack(spike_signals)
-
-
 # Reliability bootstrap
 def random_subset_of_combinations(iterable, R, k, seed=0):
     """Returns `R` random samples of
@@ -87,9 +56,22 @@ def random_subset_of_combinations(iterable, R, k, seed=0):
     return selected_combinations
 
 
+def load_spike_signals(file, sim_idx,return_metadata=False):
+    spike_signals = []
+    with h5py.File(file, 'r') as f:
+        gids = f['gids'][()]
+        metadata={'firing_rates':f['firing_rates'][()],
+                  'mean_centered':f['mean_centered'][()],
+                  'sigma':f['sigma'][()]}
+        for sim_id in sim_idx:
+            spike_signals.append(f['spike_signals_exc'][f'sim_{sim_id}'][()])
+    if return_metadata==False:
+        return gids, np.stack(spike_signals)
+    elif return_metadata==True:
+        return gids, np.stack(spike_signals), metadata
+
 def compute_and_save_reliabity_bootstrap(save_path,
                                          spikes_h5_file, selected_sims_index,
-                                         sim_seeds, sigma, mean_centered, nrn_type,
                                          R=100, k=10,
                                          bootstrap_seed=0, force_recomp=False):
     ###Output directory
@@ -98,12 +80,11 @@ def compute_and_save_reliabity_bootstrap(save_path,
     # spikes_h5_file: h5_store containing spike signals and gids
     # selected_sims_index: Indices of the simulations selected for analysis
     # TODO: Would be good to have the rates and the seeds in the file above as it was before changing the format
-    # TODO: FIRST CHECK IF FILES ARE THERE AND THEN SLICE, NOT THE OTHER WAY AROUND ... 
+    # TODO: FIRST CHECK IF FILES ARE THERE AND THEN SLICE, NOT THE OTHER WAY AROUND ...
     ### Meta data of the spike_signals
-    # sim_seeds: seeds of the simulations in h5_store
     # sigma : sigma for Gaussian kernel in pre-processing
     # mean_center: True if pre-processed activity per cell is mean centered
-    # nrn_type: neuron type, generically EXC or INH
+    # firing_rates: average firing rates related to the computation
     ### Input parameters
     # R: Bootstrap repetitions
     # k: Number of seeds to choose for each single computation
@@ -114,33 +95,32 @@ def compute_and_save_reliabity_bootstrap(save_path,
     N = selected_sims_index.shape[0]  # Total number of seeds for the bootstrap
     print("Loading data")
     start=time.time()
-    gids, spike_signals = load_spike_signals(spikes_h5_file, selected_sims_index)
+    gids, spike_signals,metadata = load_spike_signals(spikes_h5_file, selected_sims_index,return_metadata=True)
     assert N == spike_signals.shape[0], "Error in the number of simulations loaded"
     assert gids.size == spike_signals.shape[1], "Missmatch on the number of gids and spike signals"
+    sigma=metadata['sigma'];
+    mean_centered=metadata['mean_centered'];
+    firing_rates=metadata['firing_rates']
     print(f'Data loaded and checked correct dimension in {time.time()-start:.2f} sec')
     # Select bootstrap samples, compute reliabilty and save
     print("Generating combinations for the bootstrap")
     bootstrap_combinations = random_subset_of_combinations(range(N), R, k, seed=bootstrap_seed)
     print("Done")
     for ridx in tqdm.tqdm(range(R)):
-        sel_idx = bootstrap_combinations[ridx]
-        print("\nSlicing data")
-        start=time.time()
-        signals=spike_signals[sel_idx, :, :]  # Restrict to the k selected simulations
-        print(f'Done slicing in {time.time()-start:.2f} sec')
-        # Paths for saving
         reliab_save_path = os.path.join(save_path, f'reliability_{ridx:03d}.npz')
-        if not os.path.exists(reliab_save_path) or force_recomp:
+        if (os.path.exists(reliab_save_path) and (force_recomp==False)):
+            print("Selection already computed")
+        elif os.path.exists(reliab_save_path) or force_recomp:
+            sel_idx = bootstrap_combinations[ridx]
+            print("\nSlicing data")
+            start=time.time()
+            signals=spike_signals[sel_idx, :, :]  # Restrict to the k selected simulations
+            print(f'Done slicing in {time.time()-start:.2f} sec')
             start=time.time()
             reliab = avg_reliability(signals)
             print(f'Reliability for slice computed in in {time.time()-start:.2f} sec')
             # print(reliab.shape, reliab.min(),reliab.max())
             np.savez(reliab_save_path, reliab=reliab, gids=gids,
-                     nrn_type=nrn_type, sigma=sigma, mean_centered=mean_centered,
-                     sel_idx=selected_sims_index, sim_seeds=sim_seeds[selected_sims_index])
-            # reliab_paths=reliab_paths #Daniela: I'm not sure what this is suppossed to be so I commented it out'''
-        '''Old code for saving rates.  Format to new format and add to file. 
-        rates_file = os.path.join(save_path, folder_name, f'rates{rates_type}_{ridx:03d}.npz')
-        if not os.path.exists(rates_file) or force_recomp:
-            np.savez(rates_file, rates=rates[:, sel_idx], gids=gids, reliab_paths=reliab_paths, nrn_type=nrn_type,
-                     rates_type=rates_type, sel_idx=sel_idx, sim_seeds=sim_seeds[sel_idx])'''
+                     sigma=sigma, mean_centered=mean_centered,
+                     sel_idx=selected_sims_index, firing_rates=firing_rates[selected_sims_index])
+            #TODO: We might also want to store sim_seeds and nrn_type
