@@ -6,10 +6,11 @@
 import json
 import numpy as np
 import os
+import scipy.sparse as sps
 from bluepy import Cell, Circuit, Simulation
 
 
-def run_extraction(campaign_path, working_dir_name='working_dir'):
+def run_extraction(campaign_path, working_dir_name='working_dir', cell_target='mc2_Column'):
     """ Run extraction of neuron info, stimulus train, adjacency matrix, and EXC spike trains. """
 
     # Load campaign config
@@ -27,15 +28,15 @@ def run_extraction(campaign_path, working_dir_name='working_dir'):
     blue_config = os.path.join(sim_paths[0], 'BlueConfig')
     sim = Simulation(blue_config)
     c = sim.circuit
-    mc2 = c.cells.ids('mc2_Column')
+    target_gids = c.cells.ids(cell_target)
     input_spike_file = os.path.abspath(os.path.join(sim.config['Run_Default']['OutputRoot'], sim.config['Stimulus_spikeReplay']['SpikeFile']))
     stim_config_file = os.path.splitext(input_spike_file)[0] + '.json'
 
     # Extract neuron info [same for all sims]
-    neuron_info = extract_neuron_info(c, mc2, save_path)
+    neuron_info = extract_neuron_info(c, target_gids, save_path)
 
-    # # Extract adjacency matrix [same for all sims]
-    # _ = extract_adj_matrix(c, neuron_info)
+    # Extract adjacency matrix [same for all sims]
+    _ = extract_adj_matrix(c, neuron_info, save_path)
 
     # Extract stim train & time windows [assumed to be same for all sims; will be check below]
     stim_train, time_windows = extract_stim_train(stim_config_file, save_path)
@@ -116,7 +117,7 @@ def extract_stim_train(stim_config_file, save_path=None):
     return stim_stream, time_windows
 
 
-def extract_adj_matrix(circuit, neuron_info):
+def extract_adj_matrix(circuit, neuron_info, save_path=None):
     gids = neuron_info.index
     conns = np.array(list(circuit.connectome.iter_connections(pre=gids, post=gids)))
     reindex_table = sps.csr_matrix((np.arange(neuron_info.shape[0], dtype=int), (np.zeros(neuron_info.shape[0], dtype=int), neuron_info.index.to_numpy())))
