@@ -4,6 +4,7 @@
 '''
 
 import h5py
+import json
 import multiprocessing
 import numpy as np
 import os
@@ -250,9 +251,13 @@ def merge_rates_to_h5_data_store(working_dir, rate_file_names, data_store_name, 
     time_stamp = np.round(time.time()).astype(int).astype(str)
     shutil.copy(h5_file, os.path.join(working_dir, f'{data_store_name}__BAK_{time_stamp}.h5'))
 
-    # Check if dataset already exists, so not to overwrite (optional)
-    if not do_overwrite:
-        with h5py.File(h5_file, 'r') as h5f:
+    # Check if dataset already exists
+    with h5py.File(h5_file, 'r+') as h5f:
+        if do_overwrite:
+            if 'firing_rates' in h5f:
+                print(f'INFO: Firing rates dataset already exists - OVERWRITING!')
+                del h5f['firing_rates']
+        else:
             assert not 'firing_rates' in h5f, 'ERROR: Firing rates dataset already exists! Please use "do_overwrite=True" to overwrite.'
 
     # Merge rates of all simulations
@@ -278,3 +283,44 @@ def merge_rates_to_h5_data_store(working_dir, rate_file_names, data_store_name, 
     print(f'INFO: {len(rate_files)} files merged and added to "{h5_file}"')
 
     return h5_file
+
+
+def merge_removed_conns_to_h5_data_store(h5_file, campaign_path, conns_list_fn, do_overwrite=False):
+    """ Merges removed connections lists into existing .h5 store as separate datasets for simulations. """
+
+    # Load campaign config
+    with open(os.path.join(campaign_path, 'config.json'), 'r') as f:
+        config_dict = json.load(f)
+    sim_paths = [os.path.join(config_dict['attrs']['path_prefix'], p) for p in config_dict['data']]
+
+    # Extract lists of removed connections
+    conns_name = os.path.splitext(conns_list_fn)[0]
+    conns_lists = []
+    for sidx, spath in enumerate(sim_paths):
+        assert os.path.exists(os.path.join(spath, conns_list_fn))
+        conns_lists.append(np.load(os.path.join(spath, conns_list_fn)))
+
+    # Check that .h5 store already exists
+    assert os.path.exists(h5_file), 'ERROR: h5 store does not exists!'
+
+    # Create backup before writing to data store
+    time_stamp = np.round(time.time()).astype(int).astype(str)
+    shutil.copy(h5_file, os.path.splitext(h5_file)[0] + f'__BAK_{time_stamp}' + os.path.splitext(h5_file)[-1])
+
+    # Check if dataset already exists
+    with h5py.File(h5_file, 'r+') as h5f:
+        if do_overwrite:
+            if conns_name in h5f:
+                print(f'INFO: "{conns_name}" group/dataset already exists - OVERWRITING!')
+                del h5f[conns_name]
+        else:
+            assert not conns_name in h5f, f'ERROR: "{conns_name}" group/dataset already exists! Please use "do_overwrite=True" to overwrite.'
+
+    # Add connection lists to .h5 store
+    h5f = h5py.File(h5_file, 'r+')
+    grp = h5f.create_group(conns_name)
+    for sidx, conns in enumerate(conns_lists):
+        grp.create_dataset(f'sim_{sidx}', data=conns)
+    h5f.close()
+
+    print(f'INFO: {len(conns_lists)} removed connections lists merged and added to "{h5_file}"')
