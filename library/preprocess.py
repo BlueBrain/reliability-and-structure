@@ -139,8 +139,12 @@ def extract_binned_spike_signals(spikes, gids, t_max, bin_size=1.0, save_path=No
     # t_max ... Max. time in ms
     # bin_size ... Time resolution in ms
 
+    assert np.all(np.isin(np.unique(spikes[:, 1]), gids)), 'ERROR: GID mismatch!'
+    assert np.max(spikes[:, 0]) <= t_max, 'ERROR: Spike time exceeds max. time!'
+
     gid_bins = np.hstack([gids - 0.5, np.max(gids) + 0.5])
     t_bins = np.arange(0.0, t_max + bin_size, bin_size)
+
     ### [SLOW] spike_signals = np.array([np.histogram(spikes[spikes[:, 1] == gid, 0], bins=t_bins)[0] for gid in gids]).astype(float)
     spike_signals = np.histogram2d(spikes[:, 1], spikes[:, 0], bins=(gid_bins, t_bins))[0] # Andras Ecker's verions from https://github.com/andrisecker/assemblyfire
 
