@@ -1,6 +1,7 @@
 '''Description: Functions to pre-process spike trains via gaussian kernel and mean centering
    Author: C. Pokorny
-   Date: 11/2022
+   Created: 11/2022
+   Last modified: 10/2023
 '''
 
 import h5py
@@ -15,7 +16,7 @@ import tqdm
 from scipy.ndimage import gaussian_filter1d
 
 
-def run_preprocessing(working_dir, spike_file_names, sigma=10.0, mean_centered=True, pool_size=10):
+def run_preprocessing(working_dir, spike_file_names, sigma=10.0, pool_size=10):
     """ Run preprocessing (filtering, mean-centering) of EXC spike trains. [PARALLEL IMPLEMENTATION] """
 
     spike_files = [os.path.join(working_dir, fn) for fn in spike_file_names]
@@ -26,21 +27,8 @@ def run_preprocessing(working_dir, spike_file_names, sigma=10.0, mean_centered=T
     time_windows = np.load(os.path.join(working_dir, 'time_windows.npy'))
     t_max = np.max(time_windows)
 
-    # Run preprocessing
-    # [SINGLE-THREAD IMPLEMENTATION]
-    # for idx in tqdm.tqdm(range(len(spike_files))):
-    #     spike_file = spike_files[idx]
-    #     spikes, _, _ = load_spike_trains(spike_file)
-    #     spike_signals, t_bins = extract_binned_spike_signals(spikes, gids, t_max, bin_size=1.0, save_path=None, fn_spec=None)
-    #     spike_signals = filter_spike_signals(spike_signals, gids, t_bins, sigma, save_path=None, fn_spec=None)
-    #     if mean_centered:
-    #         spike_signals = mean_center_spike_signals(spike_signals, gids, t_bins, save_path=None, fn_spec=None)
-    #     save_path=os.path.split(spike_file)[0]
-    #     fn_spec=f'_exc_{idx}__tmp__'
-    #     np.savez_compressed(os.path.join(save_path, f'spike_signals{fn_spec}.npz'), spike_signals=spike_signals, t_bins=t_bins, gids=gids, sigma=sigma, mean_centered=mean_centered)
-
-    # [PARALLEL IMPLEMENTATION]
-    fct_args = [(f, gids, t_max, sigma, mean_centered) for f in spike_files]
+    # Run preprocessing [PARALLEL IMPLEMENTATION]
+    fct_args = [(f, gids, t_max, sigma) for f in spike_files]
     t0 = time.time()
     with multiprocessing.Pool(pool_size) as pool:
         pool.map(proc_fct, fct_args)
@@ -49,18 +37,16 @@ def run_preprocessing(working_dir, spike_file_names, sigma=10.0, mean_centered=T
 
 def proc_fct(fct_args):
     """ Processing function for parallel implementation. """
-    spike_file, gids, t_max, sigma, mean_centered = fct_args
+    spike_file, gids, t_max, sigma = fct_args
 
     fidx = int(os.path.splitext(spike_file)[0].split('_')[-1])
     spikes, _, _ = load_spike_trains(spike_file)
     spike_signals, t_bins = extract_binned_spike_signals(spikes, gids, t_max, bin_size=1.0, save_path=None, fn_spec=None)
     spike_signals = filter_spike_signals(spike_signals, gids, t_bins, sigma, save_path=None, fn_spec=None)
-    if mean_centered:
-        spike_signals = mean_center_spike_signals(spike_signals, gids, t_bins, save_path=None, fn_spec=None)
 
     save_path=os.path.split(spike_file)[0]
     fn_spec=f'_exc_{fidx}__tmp__'
-    np.savez_compressed(os.path.join(save_path, f'spike_signals{fn_spec}.npz'), spike_signals=spike_signals, t_bins=t_bins, gids=gids, sigma=sigma, mean_centered=mean_centered)
+    np.savez_compressed(os.path.join(save_path, f'spike_signals{fn_spec}.npz'), spike_signals=spike_signals, t_bins=t_bins, gids=gids, sigma=sigma)
 
 
 def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name, split_by_gid=False):
@@ -84,7 +70,6 @@ def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name,
     t_bins = None
     gids = None
     sigma = None
-    mean_centered = None
     for spike_file in tqdm.tqdm(spike_files):
         fidx = int(os.path.splitext(spike_file)[0].replace('__tmp__', '').split('_')[-1])
         sp_dict = np.load(spike_file)
@@ -100,10 +85,6 @@ def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name,
             sigma = sp_dict['sigma']
         else:
             assert sigma == sp_dict['sigma'], 'ERROR: Sigma mismatch!'
-        if mean_centered is None:
-            mean_centered = sp_dict['mean_centered']
-        else:
-            assert mean_centered == sp_dict['mean_centered'], 'ERROR: mean_centered mismatch!'
         spike_signals = sp_dict['spike_signals']
         assert spike_signals.shape[0] == len(gids), 'ERROR: Spike signal shape mismatch!'
 
@@ -117,7 +98,6 @@ def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name,
     h5f.create_dataset('t_bins', data=t_bins)
     h5f.create_dataset('gids', data=gids)
     h5f.create_dataset('sigma', data=sigma)
-    h5f.create_dataset('mean_centered', data=mean_centered)
     h5f.close()
 
     print(f'INFO: {len(spike_files)} files merged into "{h5_file}"')
@@ -176,21 +156,6 @@ def filter_spike_signals(spike_signals, gids, t_bins, sigma, save_path=None, fn_
     return spike_signals
 
 
-def mean_center_spike_signals(spike_signals, gids, t_bins, save_path=None, fn_spec=None):
-
-    spike_signals = spike_signals - np.mean(spike_signals, 1, keepdims=True)
-
-    if fn_spec is None:
-        fn_spec = ''
-    if len(fn_spec) > 0:
-        fn_spec = f'_{fn_spec}'
-
-    if save_path is not None:
-        np.savez_compressed(os.path.join(save_path, f'spike_signals{fn_spec}.npz'), spike_signals=spike_signals, t_bins=t_bins, gids=gids)
-
-    return spike_signals
-
-
 def run_rate_extraction(working_dir, spike_file_names, pool_size=10):
     """ Run extration of EXC firing rates. [PARALLEL IMPLEMENTATION] """
 
@@ -199,14 +164,7 @@ def run_rate_extraction(working_dir, spike_file_names, pool_size=10):
     neuron_info = pd.read_pickle(os.path.join(working_dir, 'neuron_info.pickle'))
     gids = neuron_info[neuron_info['synapse_class'] == 'EXC'].index # Excitatory GIDs extracted from neuron info table
 
-    # Run firing rate extraction
-    # [SINGLE-THREAD IMPLEMENTATION]
-    # for idx in tqdm.tqdm(range(len(spike_files))):
-    #     spike_file = spike_files[idx]
-    #     spikes, _, _ = load_spike_trains(spike_file)
-    #     firing_rates = extract_firing_rates(spikes, gids, save_path=os.path.split(spike_file)[0], fn_spec=f'exc_{idx}__tmp__')
-
-    # [PARALLEL IMPLEMENTATION]
+    # Run firing rate extraction [PARALLEL IMPLEMENTATION]
     fct_args = [(f, gids) for f in spike_files]
     t0 = time.time()
     with multiprocessing.Pool(pool_size) as pool:
