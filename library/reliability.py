@@ -10,18 +10,92 @@ import random
 from scipy.spatial import distance
 
 
+# Basic functions for reliability computations
 
-
-# Functions for reliability computations
-def avg_reliability(v_filt):
+def mean_center_spike_signals(spike_signals):
+    spike_signals = spike_signals - np.mean(spike_signals, 1, keepdims=True)
+    return spike_signals
+    
+def avg_reliability(v_filt, mean_center=True):
     """Computes average reliability between all pairs of trials of a give set.
         v_filt: Array spike trains many simuations of shape N_trials x #neuronss # time_bins"""
     no_cells=v_filt.shape[1]
+    if mean_center:
+        v_filt=mean_center_spike_signals(v_filt)
     mean_rels=[(1-distance.pdist(v_filt[:,x,:],'cosine')).mean() for x in range(no_cells)]
     return np.array(mean_rels)
 
+# Basic reliability computations from single set of samples
+def load_spike_signals(file, sim_idx,return_metadata=False):
+    spike_signals = []
+    with h5py.File(file, 'r') as f:
+        gids = f['gids'][()]
+        metadata={'firing_rates':f['firing_rates'][()],
+                  'mean_centered':f['mean_centered'][()],
+                  'sigma':f['sigma'][()]}
+        for sim_id in sim_idx:
+            spike_signals.append(f['spike_signals_exc'][f'sim_{sim_id}'][()])
+    if return_metadata==False:
+        return gids, np.stack(spike_signals)
+    elif return_metadata==True:
+        return gids, np.stack(spike_signals), metadata
 
-# Functions for indexing block desing and loading selected simulations
+def compute_reliabity_basic(save_path,spikes_h5_file, selected_sims_index, mean_center=True):
+    ### Load seeds of single simulation/experiment and compute average reliability
+
+    # Load data
+    N = selected_sims_index.shape[0]
+    print("Loading data")
+    start=time.time()
+    gids, spike_signals,metadata = load_spike_signals(spikes_h5_file, selected_sims_index,return_metadata=True)
+    assert N == spike_signals.shape[0], "Error in the number of simulations loaded"
+    assert gids.size == spike_signals.shape[1], "Missmatch on the number of gids and spike signals"
+    sigma=metadata['sigma'];
+    mean_centered=metadata['mean_centered'];
+    firing_rates=metadata['firing_rates']
+    print(f'Data loaded and checked correct dimension in {time.time()-start:.2f} sec')
+
+    # Compute reliability
+    start=time.time()
+    reliab = avg_reliability(spike_signals, mean_center=mean_center)
+    print(f'Computed reliabilty in {time.time()-start:.2f} sec')
+    
+    np.savez(reliab_save_path, reliab=reliab, gids=gids,
+             sigma=sigma, mean_centered=mean_centered,
+             sel_idx=selected_sims_index, firing_rates=firing_rates[selected_sims_index])
+            #TODO: Save instead the path to the firing rates?
+
+def compute_reliabity_basic_many_sims(save_path, reliab_keys, spikes_h5_files, selected_sims_indices, 
+                                     mean_center=True):
+    ### Load samples and compute average reliability of several seeds
+
+    # reliab_keys, spikes_h5_files, selected_sims_indices must have the same length!
+    k = Number of sims 
+
+    # Looping through simulations 
+    reliab_dict = {key:None for key in reliab_keys}
+    for k in range(k):
+        spikes_h5_file= spikes_h5_files[k]; selected_sims_index=selected_sims_indices[k]
+        key=reliab_keys[k]
+        # Load data
+        N = selected_sims_index.shape[0]  # Total number of seeds for the bootstrap
+        print("Loading data")
+        start=time.time()
+        gids, spike_signals = load_spike_signals(spikes_h5_file, selected_sims_index,return_metadata=False)
+        assert N == spike_signals.shape[0], "Error in the number of simulations loaded"
+        assert gids.size == spike_signals.shape[1], "Missmatch on the number of gids and spike signals"
+        print(f'Data of {key} loaded and checked correct dimension in {time.time()-start:.2f} sec')
+        # Compute reliability
+        start=time.time()
+        reliab_dict[key] = avg_reliability(spike_signals, mean_center=mean_center)
+        print(f'Computed reliabilty in {time.time()-start:.2f} sec')
+    # Adding metadata 
+    reliab_dict['sim_selected']= selected_sims_indices
+    reliab_dict['spikes_paths']=spikes_h5_files
+    with open(save_path, 'wb') as fp:
+        pickle.dump(reliab_dict, fp)
+
+# Functions for indexing block desing simulations
 def get_boolean_index_block_gids(block_table, gids, special_gids):
     special_gids_index = [np.where(gids == gid)[0][0] for gid in special_gids]  # Indices special_gids
     special_block_index = np.full(len(gids), -1)
@@ -37,7 +111,7 @@ def select_sims_for_cell(gid_index, special_block_index, block_table):
     return sim_sel
 
 
-# Reliability bootstrap
+# Bootstrapping reliability
 def random_subset_of_combinations(iterable, R, k, seed=0):
     """Returns `R` random samples of
     `k` length combinations of in `iterable`"""
@@ -56,19 +130,6 @@ def random_subset_of_combinations(iterable, R, k, seed=0):
     return selected_combinations
 
 
-def load_spike_signals(file, sim_idx,return_metadata=False):
-    spike_signals = []
-    with h5py.File(file, 'r') as f:
-        gids = f['gids'][()]
-        metadata={'firing_rates':f['firing_rates'][()],
-                  'mean_centered':f['mean_centered'][()],
-                  'sigma':f['sigma'][()]}
-        for sim_id in sim_idx:
-            spike_signals.append(f['spike_signals_exc'][f'sim_{sim_id}'][()])
-    if return_metadata==False:
-        return gids, np.stack(spike_signals)
-    elif return_metadata==True:
-        return gids, np.stack(spike_signals), metadata
 
 def compute_and_save_reliabity_bootstrap(save_path,
                                          spikes_h5_file, selected_sims_index,
