@@ -68,10 +68,9 @@ def compute_reliabity_basic(save_path,spikes_h5_file, selected_sims_index, mean_
 def compute_reliabity_basic_many_sims(save_path, reliab_keys, spikes_h5_files, selected_sims_indices, 
                                      mean_center=True):
     ### Load samples and compute average reliability of several seeds
-
-    # reliab_keys, spikes_h5_files, selected_sims_indices must have the same length!
-    k = Number of sims 
-
+    assert len(reliab_keys) == len(spikes_h5_files), "Missmatch between the number of keys and number of simulations"
+    assert len(spikes_h5_files) == len (selected_sims_indices), "Missmatch between the number of simulations and selected simulation indices"
+    k = len(reliab_keys)
     # Looping through simulations 
     reliab_dict = {key:None for key in reliab_keys}
     for k in range(k):
