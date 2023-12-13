@@ -16,19 +16,22 @@ import tqdm
 from scipy.ndimage import gaussian_filter1d
 
 
-def run_preprocessing(working_dir, spike_file_names, sigma=10.0, pool_size=10):
-    """ Run preprocessing (filtering, mean-centering) of EXC spike trains. [PARALLEL IMPLEMENTATION] """
+def run_preprocessing(working_dir, spike_file_names, sigma=10.0, syn_class='EXC', pool_size=10):
+    """ Run preprocessing (filtering, mean-centering) of EXC/INH/ALL spike trains. [PARALLEL IMPLEMENTATION] """
 
     spike_files = [os.path.join(working_dir, fn) for fn in spike_file_names]
 
     neuron_info = pd.read_pickle(os.path.join(working_dir, 'neuron_info.pickle'))
-    gids = neuron_info[neuron_info['synapse_class'] == 'EXC'].index # Excitatory GIDs extracted from neuron info table
+    if syn_class == 'ALL':
+        gids = neuron_info.index # All GIDs extracted from neuron info table
+    else:
+        gids = neuron_info[neuron_info['synapse_class'] == syn_class].index # Excitatory/inhibitory GIDs extracted from neuron info table
 
     time_windows = np.load(os.path.join(working_dir, 'time_windows.npy'))
     t_max = np.max(time_windows)
 
     # Run preprocessing [PARALLEL IMPLEMENTATION]
-    fct_args = [(f, gids, t_max, sigma) for f in spike_files]
+    fct_args = [(f, gids, t_max, sigma, syn_class) for f in spike_files]
     t0 = time.time()
     with multiprocessing.Pool(pool_size) as pool:
         pool.map(proc_fct, fct_args)
@@ -37,7 +40,7 @@ def run_preprocessing(working_dir, spike_file_names, sigma=10.0, pool_size=10):
 
 def proc_fct(fct_args):
     """ Processing function for parallel implementation. """
-    spike_file, gids, t_max, sigma = fct_args
+    spike_file, gids, t_max, sigma, syn_class = fct_args
 
     fidx = int(os.path.splitext(spike_file)[0].split('_')[-1])
     spikes, _, _ = load_spike_trains(spike_file)
@@ -45,12 +48,12 @@ def proc_fct(fct_args):
     spike_signals = filter_spike_signals(spike_signals, gids, t_bins, sigma, save_path=None, fn_spec=None)
 
     save_path=os.path.split(spike_file)[0]
-    fn_spec=f'_exc_{fidx}__tmp__'
+    fn_spec=f'_{syn_class.lower()}_{fidx}__tmp__'
     np.savez_compressed(os.path.join(save_path, f'spike_signals{fn_spec}.npz'), spike_signals=spike_signals, t_bins=t_bins, gids=gids, sigma=sigma)
 
 
-def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name, split_by_gid=False):
-    """ Creates new .h5 data store and merges processed EXC spike signals into .h5 store as separate
+def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name, split_by_gid=False, syn_class='EXC'):
+    """ Creates new .h5 data store and merges processed spike signals into .h5 store as separate
         data sets sims and optionally, GIDs. [WITH COMPRESSION] """
 
     spike_files = [os.path.join(working_dir, fn) for fn in processed_file_names]
@@ -65,7 +68,7 @@ def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name,
 
     # Merge files into .h5 store [WITH COMPRESSION!]
     h5f = h5py.File(h5_file, 'w-')
-    grp = h5f.create_group('spike_signals_exc')
+    grp = h5f.create_group(f'spike_signals_{syn_class.lower()}')
 
     t_bins = None
     gids = None
@@ -103,6 +106,18 @@ def merge_into_h5_data_store(working_dir, processed_file_names, data_store_name,
     print(f'INFO: {len(spike_files)} files merged into "{h5_file}"')
 
     return h5_file
+
+
+def create_empty_data_store(working_dir, data_store_name):
+    """ Creates data store. """
+
+    # Check that .h5 store does not yet exists
+    h5_file = os.path.join(working_dir, data_store_name + '.h5')
+    assert not os.path.exists(h5_file), 'ERROR: h5 store already exists!'
+
+    # Create .h5 store [WITH COMPRESSION!]
+    h5f = h5py.File(h5_file, 'w-')
+    h5f.close()
 
 
 def load_spike_trains(spike_file):
@@ -156,16 +171,19 @@ def filter_spike_signals(spike_signals, gids, t_bins, sigma, save_path=None, fn_
     return spike_signals
 
 
-def run_rate_extraction(working_dir, spike_file_names, pool_size=10):
-    """ Run extration of EXC firing rates. [PARALLEL IMPLEMENTATION] """
+def run_rate_extraction(working_dir, spike_file_names, syn_class='EXC', pool_size=10):
+    """ Run extraction of EXC/INH/ALL firing rates. [PARALLEL IMPLEMENTATION] """
 
     spike_files = [os.path.join(working_dir, fn) for fn in spike_file_names]
 
     neuron_info = pd.read_pickle(os.path.join(working_dir, 'neuron_info.pickle'))
-    gids = neuron_info[neuron_info['synapse_class'] == 'EXC'].index # Excitatory GIDs extracted from neuron info table
+    if syn_class == 'ALL':
+        gids = neuron_info.index # All GIDs extracted from neuron info table
+    else:
+        gids = neuron_info[neuron_info['synapse_class'] == syn_class].index # Excitatory/inhibitory GIDs extracted from neuron info table
 
     # Run firing rate extraction [PARALLEL IMPLEMENTATION]
-    fct_args = [(f, gids) for f in spike_files]
+    fct_args = [(f, gids, syn_class) for f in spike_files]
     t0 = time.time()
     with multiprocessing.Pool(pool_size) as pool:
         pool.map(rate_proc_fct, fct_args)
@@ -174,11 +192,11 @@ def run_rate_extraction(working_dir, spike_file_names, pool_size=10):
 
 def rate_proc_fct(fct_args):
     """ Firing rate extraction function for parallel implementation. """
-    spike_file, gids = fct_args
+    spike_file, gids, syn_class = fct_args
 
     fidx = int(os.path.splitext(spike_file)[0].split('_')[-1])
     spikes, _, _ = load_spike_trains(spike_file)
-    firing_rates = extract_firing_rates(spikes, gids, save_path=os.path.split(spike_file)[0], fn_spec=f'exc_{fidx}__tmp__')
+    firing_rates = extract_firing_rates(spikes, gids, save_path=os.path.split(spike_file)[0], fn_spec=f'{syn_class.lower()}_{fidx}__tmp__')
 
 
 def extract_firing_rates(spikes, gids, save_path=None, fn_spec=None):
@@ -240,9 +258,12 @@ def merge_rates_to_h5_data_store(working_dir, rate_file_names, data_store_name, 
     firing_rates = np.array(firing_rates)
 
     # Add rates to .h5 store
-    h5f = h5py.File(h5_file, 'r+')
-    h5f.create_dataset('firing_rates', data=firing_rates)
-    h5f.close()
+    with h5py.File(h5_file, 'r+') as h5f:
+        if 'gids' in h5f:
+            assert np.array_equal(gids, r_dict['gids']), 'ERROR: Data store GIDs mismatch!'
+        else:
+            h5f.create_dataset('gids', data=gids)
+        h5f.create_dataset('firing_rates', data=firing_rates)
 
     print(f'INFO: {len(rate_files)} files merged and added to "{h5_file}"')
 
