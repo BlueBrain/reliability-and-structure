@@ -120,7 +120,7 @@ def load_C_elegans_stages(data_dir):
 
     # Loading neuron data 
     fns = glob.glob(f"{data_dir}/witvliet_2020*.xlsx")
-    stage = [int(_fn[19]) for _fn in fns]
+    stage = [int(_fn[len(data_dir)+15]) for _fn in fns]
     idx = np.argsort(stage)
     fns = [fns[_i] for _i in idx]
     stage = [stage[_i] for _i in idx]

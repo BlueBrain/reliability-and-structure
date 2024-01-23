@@ -1,0 +1,14 @@
+{"connectome": {
+    "path": "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/simulations/BlobStimReliability_O1v5-SONATA_Baseline/working_dir/connectome.h5",
+    "filter": {
+        "synapse_class": "EXC"
+    }
+},
+     "save_path": "working_dir/corr_signals_exc",
+     "sim_root": "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/simulations/Toposample_O1v5-SONATA/",
+     "spikes": {
+         "fname": "toposample_input/raw_spikes_exc.npy",
+         "t_max": 160000,
+       "filter":{"sigma":10}
+     }
+}
