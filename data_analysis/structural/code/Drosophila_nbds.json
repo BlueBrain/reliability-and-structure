@@ -1,0 +1,14 @@
+{
+    "connectome":{
+        "data_dir": "../../data",
+        "name": "Drosophila"
+    },
+    "controls":{
+        "seed":25,
+        "types":{
+            "configuration_model":{},
+            "ER_shuffle":{}
+        }
+    },
+    "save_path":"../../data"
+}

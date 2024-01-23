@@ -1,0 +1,21 @@
+{
+    "connectome":{
+        "data_dir": "../../data",
+        "name": "MICrONS"
+    },
+    "controls":{
+                "seed":25,
+                "types":{
+                    "configuration_model":{},
+                    "ER_shuffle":{},
+                    "run_DD2":{
+                        "kwargs":{
+                            "a": 0.06705720999872188,
+                            "b": 1.183000158541148e-05,
+                            "xyz_labels":["x_nm", "y_nm", "z_nm"]
+                        }
+                    }
+                }
+            },
+    "save_path":"../../data"
+}

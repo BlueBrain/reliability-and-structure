@@ -1,0 +1,15 @@
+{
+    "connectome":{
+        "data_dir": "../../data",
+        "name": "Celegans"
+
+    },
+    "save_path":"../../data",
+    "controls":{
+        "n_samples":100,
+        "types":{
+            "configuration_model":{},
+            "ER_shuffle":{}
+        }
+    }
+}
