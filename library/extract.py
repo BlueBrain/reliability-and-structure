@@ -10,8 +10,8 @@ import scipy.sparse as sps
 from bluepy import Cell, Circuit, Simulation
 
 
-def run_extraction(campaign_path, working_dir_name='working_dir', cell_target='mc2_Column'):
-    """ Run extraction of neuron info, stimulus train, adjacency matrix, and EXC spike trains. """
+def run_extraction(campaign_path, working_dir_name='working_dir', cell_target='mc2_Column', syn_class='EXC'):
+    """ Run extraction of neuron info, stimulus train, adjacency matrix, and EXC/INH/ALL spike trains. """
 
     # Load campaign config
     with open(os.path.join(campaign_path, 'config.json'), 'r') as f:
@@ -56,8 +56,8 @@ def run_extraction(campaign_path, working_dir_name='working_dir', cell_target='m
         assert np.array_equal(stim_train, stim_train_tmp), 'ERROR: Stim train mismatch!'
         assert np.array_equal(time_windows, time_windows_tmp), 'ERROR: Time windows mismatch!'
 
-        # Extract excitatory spikes
-        _ = extract_spikes(sim_tmp, neuron_info, 'EXC', cut_start, cut_end, save_path, fn_spec=str(sidx))
+        # Extract excitatory/inhibitory/all spikes
+        _ = extract_spikes(sim_tmp, neuron_info, syn_class, cut_start, cut_end, save_path, fn_spec=str(sidx))
 
     print(f'INFO: {sidx + 1} spike files written to "{save_path}"')
 
