@@ -1,0 +1,16 @@
+{
+    "sim_root": "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/simulations/Toposample_O1v5-SONATA/",
+    "connectome": {
+    "path": "working_dir/connectome.h5",
+    "filter": {
+        "synapse_class": "EXC"
+    }
+},
+    "correlations_fname": "working_dir/corr_spikes_exc.npz",
+    "spikes": {
+        "fname": "toposample_input/raw_spikes_exc.npy",
+         "t_max": 160000
+     },
+    "centers": "all",
+    "save_path": "working_dir/dimensions_EE_from_spikes.pkl"
+}

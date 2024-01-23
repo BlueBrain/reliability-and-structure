@@ -13,7 +13,7 @@ from scipy.spatial import distance
 # Basic functions for reliability computations
 
 def mean_center_spike_signals(spike_signals):
-    spike_signals = spike_signals - np.mean(spike_signals, 1, keepdims=True)
+    spike_signals = spike_signals - np.mean(spike_signals, 2, keepdims=True)
     return spike_signals
     
 def avg_reliability(v_filt, mean_center=True):
@@ -31,7 +31,7 @@ def load_spike_signals(file, sim_idx,return_metadata=False):
     with h5py.File(file, 'r') as f:
         gids = f['gids'][()]
         metadata={'firing_rates':f['firing_rates'][()],
-                  'mean_centered':f['mean_centered'][()],
+                  #'mean_centered':f['mean_centered'][()], # Removed from later simulations because we don't mean center anymore
                   'sigma':f['sigma'][()]}
         for sim_id in sim_idx:
             spike_signals.append(f['spike_signals_exc'][f'sim_{sim_id}'][()])
@@ -65,19 +65,21 @@ def compute_reliabity_basic(save_path,spikes_h5_file, selected_sims_index, mean_
              sel_idx=selected_sims_index, firing_rates=firing_rates[selected_sims_index])
             #TODO: Save instead the path to the firing rates?
 
-def compute_reliabity_basic_many_sims(save_path, reliab_keys, spikes_h5_files, selected_sims_indices, 
-                                     mean_center=True):
-    ### Load samples and compute average reliability of several seeds
-    assert len(reliab_keys) == len(spikes_h5_files), "Missmatch between the number of keys and number of simulations"
-    assert len(spikes_h5_files) == len (selected_sims_indices), "Missmatch between the number of simulations and selected simulation indices"
-    k = len(reliab_keys)
+def compute_reliabity_basic_many_sims(config_dict, mean_center=True):
+    ''' Load samples and compute average reliability of several seeds and store them together in a dict 
+        config_dict has keys: 
+            'save_path': the path on which the results will be stored
+            'name_of_sim': a dict for each simulation to be analyzed, with keys: 
+                    'spikes_h5_file': the path to the (pre-processed spike train files) 
+                    'selected_sims_index': an array indicating which seeds to use from all available seeds
+        Returns: dict with keys 'name_of_sim', each containing, the reliabity results and the metadata of the input
+    '''
     # Looping through simulations 
-    reliab_dict = {key:None for key in reliab_keys}
-    for k in range(k):
-        spikes_h5_file= spikes_h5_files[k]; selected_sims_index=selected_sims_indices[k]
-        key=reliab_keys[k]
+    for key in config_dict.keys():
+        spikes_h5_file= f'{config_dict[key]["sim_dir"]}/working_dir/processed_data_store.h5'
+        selected_sims_index=config_dict[key]['selected_sims_index']
         # Load data
-        N = selected_sims_index.shape[0]  # Total number of seeds for the bootstrap
+        N = selected_sims_index.shape[0]  # Total number of seeds selected
         print("Loading data")
         start=time.time()
         gids, spike_signals = load_spike_signals(spikes_h5_file, selected_sims_index,return_metadata=False)
@@ -86,13 +88,12 @@ def compute_reliabity_basic_many_sims(save_path, reliab_keys, spikes_h5_files, s
         print(f'Data of {key} loaded and checked correct dimension in {time.time()-start:.2f} sec')
         # Compute reliability
         start=time.time()
-        reliab_dict[key] = avg_reliability(spike_signals, mean_center=mean_center)
-        print(f'Computed reliabilty in {time.time()-start:.2f} sec')
-    # Adding metadata 
-    reliab_dict['sim_selected']= selected_sims_indices
-    reliab_dict['spikes_paths']=spikes_h5_files
-    with open(save_path, 'wb') as fp:
-        pickle.dump(reliab_dict, fp)
+        reliability = avg_reliability(spike_signals, mean_center=mean_center)
+        print(f'Computed reliabilty of {key} in {time.time()-start:.2f} sec')
+        # Save
+        np.savez(f'{config_dict[key]["sim_dir"]}/working_dir/{config_dict[key]["out_fname"]}',
+                 reliability=reliability, selected_sims_index=selected_sims_index) 
+
 
 # Functions for indexing block desing simulations
 def get_boolean_index_block_gids(block_table, gids, special_gids):
@@ -132,7 +133,7 @@ def random_subset_of_combinations(iterable, R, k, seed=0):
 
 def compute_and_save_reliabity_bootstrap(save_path,
                                          spikes_h5_file, selected_sims_index,
-                                         R=100, k=10,
+                                         R=100, k=10, mean_center=True,
                                          bootstrap_seed=0, force_recomp=False):
     ###Output directory
     # reliab_path: directory where to save the reliability files
@@ -177,7 +178,7 @@ def compute_and_save_reliabity_bootstrap(save_path,
             signals=spike_signals[sel_idx, :, :]  # Restrict to the k selected simulations
             print(f'Done slicing in {time.time()-start:.2f} sec')
             start=time.time()
-            reliab = avg_reliability(signals)
+            reliab = avg_reliability(signals, mean_center=mean_center)
             print(f'Reliability for slice computed in in {time.time()-start:.2f} sec')
             # print(reliab.shape, reliab.min(),reliab.max())
             np.savez(reliab_save_path, reliab=reliab, gids=gids,

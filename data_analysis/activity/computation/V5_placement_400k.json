@@ -1,0 +1,36 @@
+{
+  "connectome": {
+    "loading": {
+      "conntility": "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/simulations/BlobStimReliability_O1v5-SONATA_Baseline/working_dir/connectome.h5"
+    },
+    "save": "/gpfs/bbp.cscs.ch/project/proj102/egas/reliability/manipulation_selection/data/V5_enhanced_400k.h5",
+    "override": [
+      {
+        "pathway": [
+          {
+            "column": "synapse_class",
+            "function": "isin",
+            "args": [
+              [
+                "EXC"
+              ]
+            ]
+          }
+        ],
+        "node_subselection":
+        { 
+            "restrict_nodes": "True",
+            "top_percentile_to_choose":25
+        },
+        "rewire":[
+          {
+            "dims_add": [4, 5, 6],
+            "dims_remove": [1, 2, 3],
+            "n": 400000,
+            "positions": [0, 1, 2, 3]
+          }
+        ]
+      }
+    ]
+  }
+}

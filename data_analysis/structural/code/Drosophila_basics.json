@@ -1,0 +1,47 @@
+{
+    "connectome":{
+        "data_dir": "../../data",
+        "name": "Drosophila"
+
+    },
+    "save_path":"../../data",
+    "analyses":{
+        "simplex_counts":{
+            "save_suffix":"",
+            "kwargs":{"threads": 8},
+            "controls":{
+                "seeds":[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                "types":{
+                    "configuration_model":{},
+                    "ER_shuffle":{},
+                    "underlying_model":{},
+                    "bishuffled_model":{}
+                    }
+                }
+            },
+        "node_degree":{
+            "save_suffix":"",
+            "kwargs":{"threads": 8},
+            "controls":{
+                "seeds":[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                "types": {
+                  "configuration_model": {},
+                  "ER_shuffle": {},
+                  "underlying_model": {},
+                  "bishuffled_model": {}
+                }
+            }
+        },
+        "count_rc_edges_skeleta":{
+            "save_suffix":"",
+            "kwargs":{"threads": 10},
+            "controls":{
+                "seeds":[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                "types":{
+                    "underlying_model":{},
+                    "bishuffled_model":{}
+                }
+            }
+        }
+    }
+}
