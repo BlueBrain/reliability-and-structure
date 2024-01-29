@@ -106,7 +106,8 @@ if __name__ == "__main__":
     for maximal, plt_str in zip([True, False], ["_max_", "_"]):
         simplices = load_simplex_list(maximal=maximal)
         node_part = topology.node_participation(conn_mat.matrix, max_simplices=maximal, threads=8)
-        sum_stats, node_part_sum_dict = {}, {}
+        all_node_part_sums = node_part.sum()
+        sum_stats, frac_node_parts = {}, {}
         for session_id, scan_id in zip([4, 5, 6, 6, 6, 7], [7, 7, 2, 4, 7, 4]):
             name_tag = "MICrONS_session%i_scan%i" % (session_id, scan_id)
             functional_data = load_functional_data(os.path.join(FUNCTIONAL_DATA_DIR, "%s.npz" % name_tag), conn_mat)
@@ -114,11 +115,11 @@ if __name__ == "__main__":
                                                                   dims=simplices.index.drop(0), with_multiplicity=True))
             sum_stats[name_tag[8:]] = stats["all"]["mean"].to_numpy()
             node_part_sums = node_part.loc[functional_data.notna()].sum()
-            node_part_sum_dict[name_tag[8:]] = node_part_sums.loc[1:].to_numpy()
+            frac_node_parts[name_tag[8:]] = node_part_sums.loc[1:].to_numpy() / all_node_part_sums.loc[1:].to_numpy()
             plot_oracle_scores_vs_sdim(stats, node_part_sums,
                                        "figs/%s_oracle_score_vs%ssimplex_dim.pdf" % (name_tag, plt_str))
         plot_y_vs_sdim_summary(sum_stats, "Mean oracle score", "figs/MICrONS_oracle_score_vs%ssimplex_dim.pdf" % plt_str)
-        plot_y_vs_sdim_summary(node_part_sum_dict, "Node participation",
+        plot_y_vs_sdim_summary(frac_node_parts, "Node participation ratio",
                                "figs/MICrONS_node_part_sum_vs%ssimplex_dim.pdf" % plt_str)
 
 
