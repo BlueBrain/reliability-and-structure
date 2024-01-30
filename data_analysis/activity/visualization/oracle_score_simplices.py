@@ -23,6 +23,7 @@ sns.set(style="ticks", context="paper", font="Helvetica Neue",
             "ytick.major.size": 2, "ytick.major.width": 0.5, "ytick.minor.size": 1.5, "ytick.minor.width": 0.3})
 STRUCTURAL_DATA_DIR = "/gpfs/bbp.cscs.ch/home/egassant/reliability_and_structure/data_analysis/data"
 FUNCTIONAL_DATA_DIR = "/gpfs/bbp.cscs.ch/project/proj96/home/ecker/assemblyfire/MICrONS"
+LAYER_DICT = {"23P": 23, "4P": 4, "5P_IT": 5, "5P_NP": 5, "5P_PT": 5, "6IT": 6, "6CT": 6}
 L234_MTYPES = ["23P", "4P"]
 L56_MTYPES = ["5P_IT", "5P_NP", "5P_PT", "6IT", "6CT"]
 COLORS = {"all": "tab:orange", "sink": "tab:green", "source": "tab:blue"}
@@ -41,14 +42,18 @@ def load_functional_data(npzf_name, conn_mat):
     as the structural data"""
     tmp = np.load(npzf_name)
     idx, spikes = tmp["idx"], tmp["spikes"]
-    oracle_scores = pd.Series(tmp["oracle_scores"], index=idx, name="oracle score")
+    # drop duplicated idx and get oracle scores
+    unique_idx, counts = np.unique(idx, return_counts=True)
+    idx_tmp = np.in1d(idx, unique_idx[counts == 1])
+    idx, spikes = idx[idx_tmp], spikes[idx_tmp, :]
+    oracle_scores = pd.Series(tmp["oracle_scores"][idx_tmp], index=idx)
+    oracle_scores = oracle_scores.loc[oracle_scores.notna()]
     # match idx to structural data
     valid_idx = conn_mat.vertices.id[np.isin(conn_mat.vertices.id, oracle_scores.index)]
     oracle_scores = oracle_scores.loc[oracle_scores.index.isin(valid_idx)]
     valid_idx_tmp = pd.Series(valid_idx.index.to_numpy(), index=valid_idx.to_numpy())
-    oracle_scores = pd.Series(oracle_scores.to_numpy(), index=valid_idx_tmp.loc[oracle_scores.index].to_numpy(),
-                              name="oracle score").sort_index()
-    # index out spikes as well (and sort gids)
+    oracle_scores = pd.Series(oracle_scores.to_numpy(), index=valid_idx_tmp.loc[oracle_scores.index].to_numpy()).sort_index()
+    # index out spikes as well (and sort corresponding gids)
     idx_tmp = np.where(np.in1d(idx, valid_idx_tmp.index.to_numpy()))[0]
     gids = valid_idx_tmp.loc[idx[idx_tmp]].to_numpy()
     sort_idx = np.argsort(gids)
@@ -60,7 +65,7 @@ def load_functional_data(npzf_name, conn_mat):
     return spikes, gids[sort_idx], pd.Series(data, index=idx)
 
 
-def population_coupling(binned_spikes):
+def _population_coupling(binned_spikes):
     """Fast implementation of population coupling (aka. coupling coefficient: corr of binned spikes
     with the avg. of the binned spikes of the rest of neurons') by Michael"""
     binned_spikes = binned_spikes - binned_spikes.mean(axis=1, keepdims=True)
@@ -68,6 +73,20 @@ def population_coupling(binned_spikes):
     A = np.dot(binned_spikes, mn_pop.reshape((-1, 1)))[:, 0]
     B = np.sqrt(np.var(mn_pop) * np.var(binned_spikes, axis=1)) * binned_spikes.shape[1]
     return A / B
+
+
+def population_coupling(binned_spikes, n_ctrls=10, seed=12345):
+    """Z-scored version of `_population_coupling()` above"""
+    ccs = _population_coupling(binned_spikes)
+    cc_ctrls = np.zeros((n_ctrls, binned_spikes.shape[0]), dtype=np.float32)
+    for i in range(n_ctrls):
+        np.random.seed(seed + i)
+        shuffled_binned_spikes = binned_spikes.copy()
+        np.random.shuffle(shuffled_binned_spikes)  # shuffle's only rows
+        np.random.shuffle(shuffled_binned_spikes.T)  # transpose and shuffle rows -> shuffle columns
+        cc_ctrls[i, :] = _population_coupling(shuffled_binned_spikes)
+    means, stds = np.mean(cc_ctrls, axis=0), np.std(cc_ctrls, axis=0)
+    return (ccs - means) / stds
 
 
 def agg_along_dims(stats):
@@ -82,6 +101,28 @@ def agg_along_dims(stats):
         df["sink"][dim] = [mean.iloc[-2], err.iloc[-2]]
     return {key: pd.DataFrame.from_dict(df[key], orient="index", columns=["mean", "sem"])
             for key in df.keys()}
+
+
+def plot_lw_rates(df, fig_name):
+    """Plots layer-wise distribution of firing rates"""
+    fig = plt.figure(figsize=(1.8, 1.6))
+    ax = fig.add_subplot(1, 1, 1)
+    sns.boxplot(x="layer", y="'rate'", order=[23, 4, 5, 6], linewidth=0.5, fliersize=0, data=df, ax=ax)
+    sns.stripplot(x="layer", y="'rate'", order=[23, 4, 5, 6], color="black", dodge=True, size=1., jitter=0.1, data=df, ax=ax)
+    sns.despine(trim=True, offset=1)
+    fig.savefig(fig_name, bbox_inches="tight", transparent=True)
+    plt.close(fig)
+
+
+def plot_oracle_score_vs_x(df, x, fig_name):
+    """Scatter plot (and regression line) of anything (e.g. rate or CC) vs. oracle score"""
+    fig = plt.figure(figsize=(1.8, 1.6))
+    ax = fig.add_subplot(1, 1, 1)
+    sns.regplot(x=x, y="oracle_score", marker='.', scatter_kws={"s": 7, "edgecolor": "none"},
+                line_kws={"linewidth": 0.5}, data=df, ax=ax)
+    sns.despine(trim=True, offset=1)
+    fig.savefig(fig_name, bbox_inches="tight", transparent=True)
+    plt.close(fig)
 
 
 def plot_oracle_scores_vs_sdim(stats, node_part_sums, fig_name, text_offset=0.01):
@@ -123,7 +164,7 @@ def plot_y_vs_sdim_summary(dict, ylabel, fig_name):
     plt.close(fig)
 
 
-def main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=False, n_ctrl=10):
+def main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=False, plt_rates=False):
     max_str = "_max_" if maximal else "_"
     l234_str = "_L234_" if only_l234 else "_"
     simplices = load_simplex_list(maximal=maximal)
@@ -136,8 +177,16 @@ def main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=False, n_ctrl
     for session_id, scan_id in zip(session_idx, scan_idx):
         name_tag = "MICrONS_session%i_scan%i" % (session_id, scan_id)
         spikes, gids, functional_data = load_functional_data(os.path.join(FUNCTIONAL_DATA_DIR, "%s.npz" % name_tag), conn_mat)
-        cc = population_coupling(spikes)
-        # TODO: cont. from here
+        if plt_rates:
+            rates, ccs = np.mean(spikes, axis=1), population_coupling(spikes)
+            tmp = functional_data.loc[functional_data.notna()]
+            data = np.vstack([tmp.to_numpy(), rates, ccs]).T
+            df = pd.DataFrame(data=data, columns=["oracle_score", "'rate'", "CC"], index=gids)
+            df["mtype"] = conn_mat.vertices.loc[df.index, "cell_type"]
+            df["layer"] = df["mtype"].map(LAYER_DICT)
+            plot_lw_rates(df, "figs/%s_l-w_rate.pdf" % name_tag)
+            plot_oracle_score_vs_x(df, "'rate'", "figs/%s_oracle_score_vs_rate.pdf" % name_tag)
+            plot_oracle_score_vs_x(df, "CC", "figs/%s_oracle_score_vs_CC.pdf" % name_tag)
         if only_l234:
             mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
             functional_data.loc[mtypes.loc[mtypes.isin(L56_MTYPES)].index] = np.nan
@@ -155,10 +204,10 @@ def main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=False, n_ctrl
 
 
 if __name__ == "__main__":
-    # sessions 8, 5 are the ones that we usually discard
-    session_idx, scan_idx = [4, 5, 6, 6, 6, 7, 8, 9], [7, 7, 2, 4, 7, 4, 5, 3]
+    session_idx = [4, 5, 6, 6, 6, 7]  # , 8, 9],
+    scan_idx = [7, 7, 2, 4, 7, 4]  # , 5, 3]
     conn_mat = load_connectome(STRUCTURAL_DATA_DIR, "MICrONS")
-    main(conn_mat, session_idx, scan_idx, maximal=True, only_l234=True)
+    main(conn_mat, session_idx, scan_idx, maximal=True, only_l234=True, plt_rates=True)
     main(conn_mat, session_idx, scan_idx, maximal=True, only_l234=False)
     main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=True)
     main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=False)
