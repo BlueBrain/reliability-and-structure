@@ -6,6 +6,7 @@ author: András Ecker, last update: 01.2024
 import os
 import numpy as np
 import pandas as pd
+from scipy.stats import pearsonr
 import sys
 sys.path.append("../../../library")
 from structural_basic import *
@@ -120,6 +121,8 @@ def plot_oracle_score_vs_x(df, x, fig_name):
     ax = fig.add_subplot(1, 1, 1)
     sns.regplot(x=x, y="oracle_score", marker='.', scatter_kws={"s": 7, "edgecolor": "none"},
                 line_kws={"linewidth": 0.5}, data=df, ax=ax)
+    ax.text(mean_df[x].quantile(0.99), 0, "r = %.2f" % pearsonr(df[x].to_numpy(), df["oracle_score"].to_numpy()).statistic,
+            horizontalalignment="center", fontsize=5)
     sns.despine(trim=True, offset=1)
     fig.savefig(fig_name, bbox_inches="tight", transparent=True)
     plt.close(fig)
@@ -173,7 +176,7 @@ def main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=False, plt_ra
         node_part.loc[conn_mat.vertices["cell_type"].isin(L56_MTYPES), :] = 0
     all_node_part_sums = node_part.sum()
 
-    sum_stats, frac_node_parts = {}, {}
+    sum_stats, frac_node_parts, dfs = {}, {}, []
     for session_id, scan_id in zip(session_idx, scan_idx):
         name_tag = "MICrONS_session%i_scan%i" % (session_id, scan_id)
         spikes, gids, functional_data = load_functional_data(os.path.join(FUNCTIONAL_DATA_DIR, "%s.npz" % name_tag), conn_mat)
@@ -184,6 +187,7 @@ def main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=False, plt_ra
             df = pd.DataFrame(data=data, columns=["oracle_score", "'rate'", "CC"], index=gids)
             df["mtype"] = conn_mat.vertices.loc[df.index, "cell_type"]
             df["layer"] = df["mtype"].map(LAYER_DICT)
+            dfs.append(df)
             plot_lw_rates(df, "figs/%s_l-w_rate.pdf" % name_tag)
             plot_oracle_score_vs_x(df, "'rate'", "figs/%s_oracle_score_vs_rate.pdf" % name_tag)
             plot_oracle_score_vs_x(df, "CC", "figs/%s_oracle_score_vs_CC.pdf" % name_tag)
@@ -197,10 +201,19 @@ def main(conn_mat, session_idx, scan_idx, maximal=False, only_l234=False, plt_ra
         frac_node_parts[name_tag[8:]] = node_part_sums.loc[1:].to_numpy() / all_node_part_sums.loc[1:].to_numpy()
         plot_oracle_scores_vs_sdim(stats, node_part_sums,
                                    "figs/%s_oracle_score%svs%ssimplex_dim.pdf" % (name_tag, l234_str, max_str))
+    # summary plots across scans
     plot_y_vs_sdim_summary(sum_stats, "Mean oracle score",
                            "figs/MICrONS_oracle_score%svs%ssimplex_dim.pdf" % (l234_str, max_str))
     plot_y_vs_sdim_summary(frac_node_parts, "Node participation ratio",
                            "figs/MICrONS_node_part_sum%svs%ssimplex_dim.pdf" % (l234_str, max_str))
+    if plt_rates:
+        df = pd.concat(dfs)
+        mean_df = df.groupby(df.index)[["oracle_score", "'rate'", "CC"]].agg("mean")
+        mean_df["mtype"] = conn_mat.vertices.loc[mean_df.index, "cell_type"]
+        mean_df["layer"] = mean_df["mtype"].map(LAYER_DICT)
+        plot_lw_rates(df, "figs/MICrONS_l-w_rate.pdf")
+        plot_oracle_score_vs_x(df, "'rate'", "figs/MICrONS_oracle_score_vs_rate.pdf")
+        plot_oracle_score_vs_x(df, "CC", "figs/MICrONS_oracle_score_vs_CC.pdf")
 
 
 if __name__ == "__main__":
