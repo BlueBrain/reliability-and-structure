@@ -6,7 +6,7 @@ author: András Ecker, last update: 02.2024
 import os
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, zscore
 import sys
 sys.path.append("../../../library")
 from coupling_coefficient import zscore_loo_ccs
@@ -216,7 +216,21 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
         frac_node_parts[name_tag] = node_part_sums.loc[1:].to_numpy() / all_node_part_sums.loc[1:].to_numpy()
         plot_y_vs_sdim(stats, node_part_sums, "Mean %s" % fn_feature,
                        "figs/MICrONS_%s_%s%svs%ssimplex_dim.pdf" % (name_tag, fn_feature, l234_str, max_str))
-    # summary plots across scans
+    # summary plot (using raw data from all scans)
+    functional_data = fn_df.loc[:, fn_df.columns.get_level_values(1) == fn_feature]
+    if fn_feature != "coupling_coeff":
+        functional_data = zscore(functional_data, nan_policy="omit").mean(axis=1)  # zscore columns and take their mean
+    else:
+        functional_data = functional_data.mean(axis=1)  # CCs are already Z-scored
+    if only_l234:
+        mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
+        functional_data.loc[mtypes.loc[mtypes.isin(L56_MTYPES)].index] = np.nan
+    stats = agg_along_dims(nstats.node_stats_per_position(simplices, functional_data,
+                                                          dims=simplices.index.drop(0), with_multiplicity=True))
+    node_part_sums = node_part.loc[functional_data.notna()].sum()
+    plot_y_vs_sdim(stats, node_part_sums, "Mean %s" % fn_feature,
+                   "figs/MICrONS_all_scans_%s%svs%ssimplex_dim.pdf" % (fn_feature, l234_str, max_str))
+    # summary plots (using results from all scans)
     plot_y_vs_sdim_summary(sum_stats, "Mean %s" % fn_feature,
                            "figs/MICrONS_%s%svs%ssimplex_dim.pdf" % (fn_feature, l234_str, max_str))
     plot_y_vs_sdim_summary(frac_node_parts, "Node participation ratio",
@@ -229,11 +243,11 @@ if __name__ == "__main__":
     conn_mat = load_connectome(STRUCTURAL_DATA_DIR, "MICrONS")
     fn_df = load_functional_data(session_idx, scan_idx, conn_mat,
                                  pklf_name=os.path.join(FUNCTIONAL_DATA_DIR, "MICrONS_functional_summary.pkl"))
-    main_functional(conn_mat, fn_df, session_idx, scan_idx)
-    main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=True)
-    main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=False)
-    main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=True)
-    main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=False)
+    #main_functional(conn_mat, fn_df, session_idx, scan_idx)
+    #main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=True)
+    #main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=False)
+    #main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=True)
+    #main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=False)
     main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=True, only_l234=True)
     main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=True, only_l234=False)
     main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=False, only_l234=True)
