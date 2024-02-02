@@ -205,7 +205,7 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
     sum_stats, frac_node_parts = {}, {}
     for session_id, scan_id in zip(session_idx, scan_idx):
         name_tag = "session%i_scan%i" % (session_id, scan_id)
-        functional_data = fn_df[name_tag, fn_feature]
+        functional_data = fn_df[name_tag, fn_feature].copy()
         if only_l234:
             mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
             functional_data.loc[mtypes.loc[mtypes.isin(L56_MTYPES)].index] = np.nan
@@ -217,7 +217,7 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
         plot_y_vs_sdim(stats, node_part_sums, "Mean %s" % fn_feature,
                        "figs/MICrONS_%s_%s%svs%ssimplex_dim.pdf" % (name_tag, fn_feature, l234_str, max_str))
     # summary plot (using raw data from all scans)
-    functional_data = fn_df.loc[:, fn_df.columns.get_level_values(1) == fn_feature]
+    functional_data = fn_df.loc[:, fn_df.columns.get_level_values(1) == fn_feature].copy()
     if fn_feature != "coupling_coeff":
         functional_data = zscore(functional_data, nan_policy="omit").mean(axis=1)  # zscore columns and take their mean
     else:
@@ -243,11 +243,11 @@ if __name__ == "__main__":
     conn_mat = load_connectome(STRUCTURAL_DATA_DIR, "MICrONS")
     fn_df = load_functional_data(session_idx, scan_idx, conn_mat,
                                  pklf_name=os.path.join(FUNCTIONAL_DATA_DIR, "MICrONS_functional_summary.pkl"))
-    #main_functional(conn_mat, fn_df, session_idx, scan_idx)
-    #main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=True)
-    #main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=False)
-    #main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=True)
-    #main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=False)
+    main_functional(conn_mat, fn_df, session_idx, scan_idx)
+    main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=True)
+    main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=False)
+    main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=True)
+    main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=False)
     main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=True, only_l234=True)
     main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=True, only_l234=False)
     main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=False, only_l234=True)
