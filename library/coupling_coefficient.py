@@ -1,7 +1,7 @@
 """
 Functions that calculate coupling coefficent
 (Pearson correlation of binned spikes/calcium traces with the mean centered population average)
-authors: András Ecker, Daniela Egas Santander, Michael W. Reimann; last update: 01.2024
+authors: András Ecker, Daniela Egas Santander, Michael W. Reimann; last update: 02.2024
 """
 
 import numpy as np
@@ -26,20 +26,13 @@ def _shuffle_spikes(spikes, seed):
     return np.vstack([spikes[:, 0], spikes[idx, 1]]).T
 
 
-def zscore_ccs(spikes, gids, t_max, bin_size=5, n_ctrls=10, seed=12345):
-    """Z-score coupling coefficients. If `n_ctrls = 0` it only Z-scores the dist. itself,
-    otherwise it generates surrogate datasets by shuffling spike times, then Z-scores their difference
-    from the original CC values and averages these Z-scored diffs. across controls"""
-    ccs = coupling_coefficient(spikes, gids, t_max, bin_size=bin_size)
-    if n_ctrls > 0:
-        zscored_diffs = np.zeros((len(np.unique(spikes[:, 1])), n_ctrls), dtype=np.float32)
-        for i in range(n_ctrls):
-            shuffled_spikes = _shuffle_spikes(spikes, seed=seed + i)
-            cc_diffs = ccs - coupling_coefficient(shuffled_spikes, gids, t_max, bin_size=bin_size)
-            zscored_diffs[:, i] = (cc_diffs - np.mean(cc_diffs)) / np.std(cc_diffs)
-        return np.mean(zscored_diffs, axis=1)
-    else:
-        return (ccs - np.mean(ccs)) / np.std(ccs)
+def cc_ctrls(spikes, gids, t_max, bin_size=5, n_ctrls=10, seed=12345):
+    """Generates surrogate datasets by shuffling spike times and gets their CC values"""
+    cc_ctrls = np.zeros((len(np.unique(spikes[:, 1])), n_ctrls), dtype=np.float32)
+    for i in range(n_ctrls):
+        shuffled_spikes = _shuffle_spikes(spikes, seed=seed + i)
+        cc_ctrls[:, i] = coupling_coefficient(shuffled_spikes, gids, t_max, bin_size=bin_size)
+    return cc_ctrls
 
 
 def coupling_coefficient_loo(traces):
@@ -71,18 +64,11 @@ def _shuffle_along_axis(traces, axis, seed):
     return np.take_along_axis(traces, idx, axis=axis)
 
 
-def zscore_loo_ccs(traces, n_ctrls=10, seed=12345):
-    """Z-score leave-one-out coupling coefficients. If `n_ctrls = 0` it only Z-scores the dist. itself,
-    otherwise it generates surrogate datasets by (row-wise) shuffling the traces, then Z-scores their difference
-    from the original CC values and averages these Z-scored diffs. across controls"""
-    ccs = coupling_coefficient_loo(traces)
-    if n_ctrls > 0:
-        zscored_diffs = np.zeros((traces.shape[0], n_ctrls), dtype=np.float32)
-        for i in range(n_ctrls):
-            shuffled_traces = _shuffle_along_axis(traces, axis=1, seed=seed + i)
-            cc_diffs = ccs - coupling_coefficient_loo(shuffled_traces)
-            zscored_diffs[:, i] = (cc_diffs - np.mean(cc_diffs)) / np.std(cc_diffs)
-        return np.mean(zscored_diffs, axis=1)
-    else:
-        return (ccs - np.mean(ccs)) / np.std(ccs)
+def cc_loo_ctrls(traces, n_ctrls=10, seed=12345):
+    """Generates surrogate datasets by row-wise shuffling traces and gets their leave-one-out CC values"""
+    cc_ctrls = np.zeros((traces.shape[0], n_ctrls), dtype=np.float32)
+    for i in range(n_ctrls):
+        shuffled_traces = _shuffle_along_axis(traces, axis=1, seed=seed + i)
+        cc_ctrls[:, i] = coupling_coefficient_loo(shuffled_traces)
+    return cc_ctrls
 

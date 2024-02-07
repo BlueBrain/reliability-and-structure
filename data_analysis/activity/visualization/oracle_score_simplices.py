@@ -9,7 +9,7 @@ import pandas as pd
 from scipy.stats import pearsonr, zscore
 import sys
 sys.path.append("../../../library")
-from coupling_coefficient import zscore_loo_ccs
+from coupling_coefficient import coupling_coefficient_loo, cc_loo_ctrls
 from structural_basic import *
 import conntility
 from connalysis.network import stats as nstats
@@ -56,7 +56,10 @@ def get_functional_data(npzf_name, conn_mat):
     spikes, gids = spikes[idx_tmp[sort_idx], :], gids[sort_idx]
     # get rates and coupling coefficients
     rates = pd.Series(np.mean(spikes, axis=1), index=gids)
-    ccs = pd.Series(zscore_loo_ccs(spikes), index=gids)
+    ccs = pd.Series(coupling_coefficient_loo(spikes), index=gids)
+    data = cc_loo_ctrls(spikes)
+    columns = ["coupling_coeff_ctrl_%i" % i for i in range(data.shape[1])]
+    cc_ctrls = pd.DataFrame(data, index=gids, columns=columns)
     # padd everything with NaNs
     idx = conn_mat.vertices.index.to_numpy()
     data = np.full(len(idx), np.nan)
@@ -68,7 +71,10 @@ def get_functional_data(npzf_name, conn_mat):
     data = np.full(len(idx), np.nan)
     data[ccs.index.to_numpy()] = ccs.to_numpy()
     ccs = pd.Series(data, index=idx, name="coupling_coeff")
-    return rates, oracle_scores, ccs
+    data = np.full((len(idx), len(columns)), np.nan)
+    data[cc_ctrls.index.to_numpy()] = cc_ctrls.to_numpy()
+    cc_ctrls = pd.DataFrame(data, index=idx, columns=columns)
+    return rates, oracle_scores, ccs, cc_ctrls
 
 
 def load_functional_data(session_idx, scan_idx, conn_mat, pklf_name=None):
@@ -77,9 +83,10 @@ def load_functional_data(session_idx, scan_idx, conn_mat, pklf_name=None):
         dfs = []
         for session_id, scan_id in zip(session_idx, scan_idx):
             name_tag = "session%i_scan%i" % (session_id, scan_id)
-            rates, oss, ccs = get_functional_data(os.path.join(FUNCTIONAL_DATA_DIR, "MICrONS_%s.npz" % name_tag), conn_mat)
-            df = pd.concat([rates, oss, ccs], axis=1)
-            df.columns = pd.MultiIndex.from_arrays([np.full(3, name_tag), df.columns.to_numpy()])
+            rates, oss, ccs, cc_ctrls = get_functional_data(os.path.join(FUNCTIONAL_DATA_DIR,
+                                                                         "MICrONS_%s.npz" % name_tag), conn_mat)
+            df = pd.concat([rates, oss, ccs, cc_ctrls], axis=1)
+            df.columns = pd.MultiIndex.from_arrays([np.full(len(df.columns), name_tag), df.columns.to_numpy()])
             dfs.append(df)
         df = pd.concat(dfs, axis=1)
         if pklf_name is not None:
@@ -218,10 +225,7 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
                        "figs/MICrONS_%s_%s%svs%ssimplex_dim.pdf" % (name_tag, fn_feature, l234_str, max_str))
     # summary plot (using raw data from all scans)
     functional_data = fn_df.loc[:, fn_df.columns.get_level_values(1) == fn_feature].copy()
-    if fn_feature != "coupling_coeff":
-        functional_data = zscore(functional_data, nan_policy="omit").mean(axis=1)  # zscore columns and take their mean
-    else:
-        functional_data = functional_data.mean(axis=1)  # CCs are already Z-scored
+    functional_data = zscore(functional_data, nan_policy="omit").mean(axis=1)  # zscore columns and take their mean
     if only_l234:
         mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
         functional_data.loc[mtypes.loc[mtypes.isin(L56_MTYPES)].index] = np.nan
