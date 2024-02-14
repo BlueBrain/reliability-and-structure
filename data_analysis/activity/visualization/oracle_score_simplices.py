@@ -206,7 +206,7 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
     simplices = load_simplex_list(maximal=maximal)
     node_part = topology.node_participation(conn_mat.matrix, max_simplices=maximal, threads=8)
     if only_l234:
-        node_part.loc[conn_mat.vertices["cell_type"].isin(L56_MTYPES), :] = 0
+        node_part.loc[~conn_mat.vertices["cell_type"].isin(L234_MTYPES), :] = 0
     all_node_part_sums = node_part.sum()
 
     sum_stats, frac_node_parts = {}, {}
@@ -215,7 +215,7 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
         functional_data = fn_df[name_tag, fn_feature].copy()
         if only_l234:
             mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
-            functional_data.loc[mtypes.loc[mtypes.isin(L56_MTYPES)].index] = np.nan
+            functional_data.loc[mtypes.loc[~mtypes.isin(L234_MTYPES)].index] = np.nan
         stats = agg_along_dims(nstats.node_stats_per_position(simplices, functional_data,
                                                               dims=simplices.index.drop(0), with_multiplicity=True))
         sum_stats[name_tag] = stats["all"]["mean"].to_numpy()
@@ -228,7 +228,7 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
     functional_data = zscore(functional_data, nan_policy="omit").mean(axis=1)  # zscore columns and take their mean
     if only_l234:
         mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
-        functional_data.loc[mtypes.loc[mtypes.isin(L56_MTYPES)].index] = np.nan
+        functional_data.loc[mtypes.loc[~mtypes.isin(L234_MTYPES)].index] = np.nan
     stats = agg_along_dims(nstats.node_stats_per_position(simplices, functional_data,
                                                           dims=simplices.index.drop(0), with_multiplicity=True))
     node_part_sums = node_part.loc[functional_data.notna()].sum()
