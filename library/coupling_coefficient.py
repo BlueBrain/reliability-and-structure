@@ -5,7 +5,7 @@ authors: András Ecker, Daniela Egas Santander, Michael W. Reimann; last update:
 """
 
 import numpy as np
-from preprocess import load_spike_trains, extract_binned_spike_signals
+from preprocess import extract_binned_spike_signals
 
 
 def coupling_coefficient(spikes, gids, t_max, bin_size=5):
