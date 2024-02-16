@@ -27,7 +27,6 @@ STRUCTURAL_DATA_DIR = "/gpfs/bbp.cscs.ch/home/egassant/reliability_and_structure
 FUNCTIONAL_DATA_DIR = "/gpfs/bbp.cscs.ch/project/proj96/home/ecker/assemblyfire/MICrONS"
 LAYER_DICT = {"23P": 23, "4P": 4, "5P_IT": 5, "5P_NP": 5, "5P_PT": 5, "6IT": 6, "6CT": 6}
 L234_MTYPES = ["23P", "4P"]
-L56_MTYPES = ["5P_IT", "5P_NP", "5P_PT", "6IT", "6CT"]
 COLORS = {"all": "tab:orange", "sink": "tab:green", "source": "tab:blue"}
 MARKERS = {"all": "o", "sink": ">", "source":"<"}
 
@@ -242,8 +241,8 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
 
 
 if __name__ == "__main__":
-    session_idx = [4, 5, 6, 6, 6, 7]  # , 8, 9],
-    scan_idx = [7, 7, 2, 4, 7, 4]  # , 5, 3]
+    session_idx = [4, 5, 6, 6, 6, 7, 8, 9]
+    scan_idx = [7, 7, 2, 4, 7, 4, 5, 3]
     conn_mat = load_connectome(STRUCTURAL_DATA_DIR, "MICrONS")
     fn_df = load_functional_data(session_idx, scan_idx, conn_mat,
                                  pklf_name=os.path.join(FUNCTIONAL_DATA_DIR, "MICrONS_functional_summary.pkl"))
