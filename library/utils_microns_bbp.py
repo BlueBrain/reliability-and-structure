@@ -36,7 +36,7 @@ def add_firing_rates(connectome, conn, fname, format=None):
     if conn == "BBP" and format == "toposample":
         spikes, gids, t_max = load_spike_trains(fname)
         gid, nspikes = np.unique(spikes[:, 1], return_counts=True)
-        rates = pd.Series(nspikes, index=gid).reindex(connectome.vertices["index"]) / t_max
+        rates = pd.Series(nspikes, index=gid).reindex(connectome.vertices["index"]) / (t_max / 1e3)
         connectome.add_vertex_property(new_label="rates", new_values=rates.to_numpy())
     elif conn == "MICrONS":
         df_act = pd.read_pickle(fname)

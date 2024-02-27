@@ -78,7 +78,9 @@ def cc_loo_ctrls(traces, n_ctrls=10, seed=12345):
 def normalize_cc(pklf_name, norm_type="per_cell"):
     """
     Normalize coupling coefficient wrt to shuffle data
-    norm_type: `global` takes the zscore (of each session and average the sessions) wrt. all shuffles
+    norm_type: `global` takes the zscore of each session and average them (controls not used)
+                        or takes the mean and std of all controls and uses those for zscoring (this second version
+                        is used for spikes, but the code actually only checks that it's not a MultiIndex)
     norm_type: `per_cell` (in each session) takes the difference between the data and the mean of its shuffles per cell,
                 and then zscores the differences (per session and takes the mean of the sessions)
     """
@@ -89,11 +91,8 @@ def normalize_cc(pklf_name, norm_type="per_cell"):
             ctrls = df.drop(columns=["coupling_coeff"]).to_numpy()
             return (df["coupling_coeff"] - np.nanmean(ctrls)) / np.nanstd(ctrls)
         else:
-            zscores = pd.DataFrame(index=df.index)
-            for session in df.columns.get_level_values(0).unique():
-                ctrls = df[session].drop(columns=["rate", "oracle_score", "coupling_coeff"]).to_numpy()
-                zscores[session] = (df[session]["coupling_coeff"] - np.nanmean(ctrls)) / np.nanstd(ctrls)
-            return zscores.mean(axis=1)
+            return zscore(df.loc[:, df.columns.get_level_values(1) == "coupling_coeff"],
+                          axis=0, nan_policy="omit").mean(axis=1)
     elif norm_type == "per_cell":
         if type(df.columns) == pd.Index:
             return zscore(df["coupling_coeff"] - df.drop(columns=["coupling_coeff"]).mean(axis=1), nan_policy="omit")
