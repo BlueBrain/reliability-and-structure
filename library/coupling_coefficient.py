@@ -6,7 +6,7 @@ authors: András Ecker, Daniela Egas Santander, Michael W. Reimann; last update:
 
 import numpy as np
 import pandas as pd
-from scipy import stats
+from scipy.stats import zscore
 from preprocess import extract_binned_spike_signals
 
 
@@ -75,40 +75,32 @@ def cc_loo_ctrls(traces, n_ctrls=10, seed=12345):
     return cc_ctrls
 
 
-def normalize_CC_traces(fname, norm_type="global"):
+def normalize_cc(pklf_name, norm_type="per_cell"):
     """
-    Normalize coupling coefficient coming from calcium traces possibly wrt to shuffle data
-    norm_type: ``global`` takes the zscore of each session and average the sessions
-    norm_type: ``per_cell`` in each session it takes difference between the data and the mean of its shuffles in each cell, 
-    zscores the differences per session and takes the mean of the sessions
+    Normalize coupling coefficient wrt to shuffle data
+    norm_type: `global` takes the zscore (of each session and average the sessions) wrt. all shuffles
+    norm_type: `per_cell` (in each session) takes the difference between the data and the mean of its shuffles per cell,
+                and then zscores the differences (per session and takes the mean of the sessions)
     """
-    df_act=pd.read_pickle(fname)
-    if norm_type=="global":
-        return stats.zscore(df_act.T.xs('coupling_coeff', level=1), axis=1, nan_policy="omit").mean(axis=0)
-    elif norm_type=="per_cell":
-        sessions=df_act.columns.get_level_values(level=0).unique()
-        diff=pd.DataFrame(index=df_act.index)
-        for session in sessions:
-            diff[session]=stats.zscore(df_act.T.xs(session, level=0).loc["coupling_coeff"]-
-                                       df_act.T.xs(session, level=0).drop(["rate", "oracle_score", "coupling_coeff"]).mean(), 
-                                       nan_policy="omit")
-        return diff.mean(axis=1)
-
-def normalize_CC_spikes(fname, bin_size, norm_type="global", reindex=False, index=None):
-    """
-    Normalize coupling coefficient coming from spike train data wrt to shuffle data
-    norm_type: ``global`` takes the zscore of the values with respect the distribution of the CC values of all shuffles
-    norm_type: ``per_cell`` takes difference between the data and the mean of its shuffles in each cell, zscores the differences
-    """
-    df=pd.read_hdf(fname, key=f"CC_bin_sz_{bin_size}")
-    if norm_type=="global":
-        ctr=df.drop("data", axis=1).to_numpy()
-        # Add z-scored data
-        vals = (df["data"]-np.mean(ctr))/np.std(ctr)
+    assert norm_type in ["per_cell", "global"]
+    df = pd.read_pickle(pklf_name) if type(pklf_name) != pd.DataFrame else pklf_name.copy()
+    if norm_type == "global":
+        if type(df.columns) == pd.Index:
+            ctrls = df.drop(columns=["coupling_coeff"]).to_numpy()
+            return (df["coupling_coeff"] - np.nanmean(ctrls)) / np.nanstd(ctrls)
+        else:
+            zscores = pd.DataFrame(index=df.index)
+            for session in df.columns.get_level_values(0).unique():
+                ctrls = df[session].drop(columns=["rate", "oracle_score", "coupling_coeff"]).to_numpy()
+                zscores[session] = (df[session]["coupling_coeff"] - np.nanmean(ctrls)) / np.nanstd(ctrls)
+            return zscores.mean(axis=1)
     elif norm_type == "per_cell":
-        vals = stats.zscore(df["data"]-df.drop("data", axis=1).mean(axis=1), nan_policy="omit")
-    if reindex:
-        assert isinstance(index, pd.Series), "If reindexing == True, and index needs to be provided"
-        vals=vals.reindex(index)
-    return vals
+        if type(df.columns) == pd.Index:
+            return zscore(df["coupling_coeff"] - df.drop(columns=["coupling_coeff"]).mean(axis=1), nan_policy="omit")
+        else:
+            zscores = pd.DataFrame(index=df.index)
+            for session in df.columns.get_level_values(0).unique():
+                mean_ctrls = df[session].drop(columns=["rate", "oracle_score", "coupling_coeff"]).mean(axis=1)
+                zscores[session] = zscore(df[session]["coupling_coeff"] - mean_ctrls, nan_policy="omit")
+            return zscores.mean(axis=1)
 
