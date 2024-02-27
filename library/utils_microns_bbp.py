@@ -15,6 +15,7 @@ import sys
 sys.path.append('../../../library')
 from structural_basic import load_connectome
 from coupling_coefficient import normalize_CC_spikes, normalize_CC_traces
+from preprocess import load_spike_trains
 
 def add_layers(conn, connectome):
     # Add layers as property for grouping
@@ -61,3 +62,27 @@ def add_cc(connectome, conn, fname, norm_type, bin_size=None):
         vals=normalize_CC_spikes(fname, bin_size, norm_type=norm_type, reindex=True, index=index).to_numpy()
     connectome.add_vertex_property(new_label=prop_names[norm_type],new_values=vals)
     return connectome
+
+def add_firing_rates(connectome,conn, fname, format=None): 
+    if (conn=="BBP" and format=="toposample"):
+        spikes, gids, t_max = load_spike_trains(fname)
+        t_max = np.ceil(t_max)
+        gid, nspikes=np.unique(spikes[:,1], return_counts=True)
+        rates=pd.Series(nspikes,index=gid).reindex(connectome.vertices["index"])/t_max
+        connectome.add_vertex_property(new_label="rates",new_values=rates.to_numpy())
+    elif conn == "MICrONS": 
+        df_act=pd.read_pickle(fname)
+        connectome.add_vertex_property(new_label="rates",  
+                                       new_values=df_act.T.xs("rate", level=1).mean().to_numpy())
+    return connectome
+
+def add_efficiency(conn, connectome, fname):
+    dims_df=pd.read_pickle(fname)
+    for col in dims_df.columns:
+        connectome.add_vertex_property(new_label=col,new_values=dims_df[col].to_numpy())
+    df=connectome.vertices
+    connectome.add_vertex_property(new_label="efficiency",
+                                          new_values=(df["actitivy_dimension"]/df["active_ts"]).astype("float").to_numpy())
+    return connectome
+
+    
