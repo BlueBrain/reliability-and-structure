@@ -70,3 +70,4 @@ def add_efficiency(connectome, fname):
     connectome.add_vertex_property(new_label="efficiency",
                                    new_values=(df["actitivy_dimension"] / df["active_ts"]).astype("float").to_numpy())
     return connectome
+
