@@ -9,7 +9,7 @@ import pandas as pd
 from scipy.stats import pearsonr, zscore
 import sys
 sys.path.append("../../../library")
-from coupling_coefficient import coupling_coefficient_loo, cc_loo_ctrls
+from coupling_coefficient import coupling_coefficient_loo, cc_loo_ctrls, normalize_cc
 from structural_basic import *
 import conntility
 from connalysis.network import stats as nstats
@@ -145,8 +145,9 @@ def plot_y_vs_sdim(stats, node_part_sums, ylabel, fig_name, text_offset=0.01):
     ax = fig.add_subplot(1, 1, 1)
     for pos, color in COLORS.items():
         x = stats[pos].index.to_numpy()
-        ax.plot(x, stats[pos]["mean"], marker=MARKERS[pos], label=pos)
-        ax.fill_between(x, stats[pos]["mean"] - stats[pos]["sem"], stats[pos]["mean"] + stats[pos]["sem"], alpha=0.2)
+        ax.plot(x, stats[pos]["mean"], color=color, marker=MARKERS[pos], label=pos)
+        ax.fill_between(x, stats[pos]["mean"] - stats[pos]["sem"], stats[pos]["mean"] + stats[pos]["sem"],
+                        color=color, alpha=0.2)
     y = stats["all"]["mean"].max() + text_offset
     for x_ in x:
         ax.text(x_, y, node_part_sums[x_], horizontalalignment="center", rotation="vertical", fontsize=6)
@@ -154,6 +155,24 @@ def plot_y_vs_sdim(stats, node_part_sums, ylabel, fig_name, text_offset=0.01):
     ax.set_xlabel("Simplex dimension")
     ax.set_ylabel(ylabel)
     ax.legend(frameon=False)
+    sns.despine(trim=True, offset=1)
+    fig.savefig(fig_name, bbox_inches="tight", transparent=True)
+    plt.close(fig)
+
+
+def plot_y_vs_sdim_paper(stats, ylim, fig_name, legend=True):
+    """Plot anything (e.g. a functional feature like oracle score) vs. simplex dimension (and position)"""
+    fig = plt.figure(figsize=(1., 0.9))
+    ax = fig.add_subplot(1, 1, 1)
+    for pos, color in COLORS.items():
+        x = stats[pos].index.to_numpy()
+        ax.plot(x, stats[pos]["mean"], color=color, marker=MARKERS[pos], markersize=2, lw=0.9, label=pos)
+        ax.fill_between(x, stats[pos]["mean"] - stats[pos]["sem"], stats[pos]["mean"] + stats[pos]["sem"],
+                        color=color, alpha=0.2)
+    ax.set_xticks(np.arange(1, 8))  # pretty hard coded...
+    ax.set_ylim(ylim)
+    if legend:
+        ax.legend(frameon=False)
     sns.despine(trim=True, offset=1)
     fig.savefig(fig_name, bbox_inches="tight", transparent=True)
     plt.close(fig)
@@ -172,6 +191,24 @@ def plot_y_vs_sdim_summary(dict, ylabel, fig_name):
     ax.set_xticks(x)
     ax.set_xlabel("Simplex dimension")
     ax.set_ylabel(ylabel)
+    ax.legend(frameon=False, bbox_to_anchor=(1., 1.1))
+    sns.despine(trim=True, offset=1)
+    fig.savefig(fig_name, bbox_inches="tight", transparent=True)
+    plt.close(fig)
+
+
+def plot_y_vs_sdim_summary_paper(dict, ylim, fig_name):
+    """Plot anything (e.g. oracle score or node part sums) vs. simplex dimension across scans and sessions"""
+    fig = plt.figure(figsize=(1., 0.9))
+    ax = fig.add_subplot(1, 1, 1)
+    x = np.arange(1, 8)  # pretty hard coded...
+    ys = np.full((len(dict), len(x)), np.nan)
+    for i, (label, y) in enumerate(dict.items()):
+        ax.plot(x, y, marker="o", markersize=2, lw=0.9, label=label)
+        ys[i, :] = y
+    ax.plot(x, np.nanmean(ys, axis=0), color="black", marker="o", markersize=2, lw=0.9, label="mean")
+    ax.set_xticks(x)
+    ax.set_ylim(ylim)
     ax.legend(frameon=False, bbox_to_anchor=(1., 1.1))
     sns.despine(trim=True, offset=1)
     fig.savefig(fig_name, bbox_inches="tight", transparent=True)
@@ -211,7 +248,10 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
     sum_stats, frac_node_parts = {}, {}
     for session_id, scan_id in zip(session_idx, scan_idx):
         name_tag = "session%i_scan%i" % (session_id, scan_id)
-        functional_data = fn_df[name_tag, fn_feature].copy()
+        if fn_feature != "coupling_coeff":
+            functional_data = fn_df[name_tag, fn_feature].copy()
+        else:
+            functional_data = normalize_cc(fn_df[name_tag].drop(columns=["rate", "oracle_score"]))
         if only_l234:
             mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
             functional_data.loc[mtypes.loc[~mtypes.isin(L234_MTYPES)].index] = np.nan
@@ -222,9 +262,16 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
         frac_node_parts[name_tag] = node_part_sums.loc[1:].to_numpy() / all_node_part_sums.loc[1:].to_numpy()
         plot_y_vs_sdim(stats, node_part_sums, "Mean %s" % fn_feature,
                        "figs/MICrONS_%s_%s%svs%ssimplex_dim.pdf" % (name_tag, fn_feature, l234_str, max_str))
+        if maximal and not only_l234:
+            legend = True if session_id == 4 and scan_id == 7 else False
+            ylim = [0.05, 0.35] if fn_feature == "oracle_score" else [-1.5, 1.5]
+            plot_y_vs_sdim_paper(stats, ylim, "figs/paper/MICrONS_%s_%s.pdf" % (name_tag, fn_feature), legend=legend)
     # summary plot (using raw data from all scans)
-    functional_data = fn_df.loc[:, fn_df.columns.get_level_values(1) == fn_feature].copy()
-    functional_data = zscore(functional_data, nan_policy="omit").mean(axis=1)  # zscore columns and take their mean
+    if fn_feature != "coupling_coeff":
+        functional_data = fn_df.loc[:, fn_df.columns.get_level_values(1) == fn_feature].copy()
+        functional_data = zscore(functional_data, nan_policy="omit").mean(axis=1)  # zscore columns and take their mean
+    else:
+        functional_data = normalize_cc(fn_df)
     if only_l234:
         mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
         functional_data.loc[mtypes.loc[~mtypes.isin(L234_MTYPES)].index] = np.nan
@@ -236,6 +283,8 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
     # summary plots (using results from all scans)
     plot_y_vs_sdim_summary(sum_stats, "Mean %s" % fn_feature,
                            "figs/MICrONS_%s%svs%ssimplex_dim.pdf" % (fn_feature, l234_str, max_str))
+    if maximal and not only_l234:
+        plot_y_vs_sdim_summary_paper(sum_stats, ylim, "figs/paper/MICrONS_%s.pdf" % fn_feature)
     plot_y_vs_sdim_summary(frac_node_parts, "Node participation ratio",
                            "figs/MICrONS_node_part_sum%svs%ssimplex_dim.pdf" % (l234_str, max_str))
 
