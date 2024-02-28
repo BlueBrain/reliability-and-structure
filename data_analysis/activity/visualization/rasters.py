@@ -125,8 +125,8 @@ def setup_input_raster(sim, t_start, t_end):
 
 
 def plot_imshow(data, t, stim_times, clips, yticks, yticklabels, fig_name):
-    """..."""
-    fig = plt.figure(figsize=(8, 2))
+    """Deconvolved spike traces, rate, and clips shown"""
+    fig = plt.figure(figsize=(9, 2))
     ax = fig.add_subplot(1, 1, 1)
     i = ax.imshow(data, cmap="Reds", norm=matplotlib.colors.LogNorm(), aspect="auto", interpolation=None)
     plt.colorbar(i)
@@ -145,7 +145,7 @@ def plot_imshow(data, t, stim_times, clips, yticks, yticklabels, fig_name):
     plt.close(fig)
 
 
-def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, yticklabels, fig_dir):
+def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, yticklabels, fig_name):
     """Raster and firing rates"""
     t_rate = np.linspace(xlim[0], xlim[1], len(rates["EXC"]))
     fig = plt.figure(figsize=(8, 2))
@@ -160,7 +160,7 @@ def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, ytickl
     ax.set_yticks(yticks)
     ax2.set_ylim(bottom=0)
     ax.set_yticklabels(yticklabels)
-    fig.savefig(fig_name, bbox_inches="tight", transparent=True, dpi=500)
+    fig.savefig(fig_name, bbox_inches="tight", transparent=True, dpi=300)
     plt.close(fig)
 
 
