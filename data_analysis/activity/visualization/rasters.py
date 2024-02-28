@@ -7,9 +7,11 @@ import os
 import json
 import numpy as np
 import pandas as pd
+from scipy.ndimage import gaussian_filter1d
 from bluepy import Simulation
 import sys
 sys.path.append("../../../library")
+from structural_basic import *
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -20,11 +22,42 @@ sns.set(style="ticks", context="paper", font="Helvetica Neue",
             "xtick.major.size": 2, "xtick.major.width": 0.5, "xtick.minor.size": 1.5, "xtick.minor.width": 0.3,
             "ytick.major.size": 2, "ytick.major.width": 0.5, "ytick.minor.size": 1.5, "ytick.minor.width": 0.3})
 RED, BLUE = "#e32b14", "#3271b8"
+STRUCTURAL_DATA_DIR = "/gpfs/bbp.cscs.ch/home/egassant/reliability_and_structure/data_analysis/data"
 MICRONS_FN_DATA_DIR = "/gpfs/bbp.cscs.ch/project/proj96/home/ecker/assemblyfire/MICrONS"
 BBP_FN_DATA_DIR = "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/bbp_workflow/7b381e96-91ac-4ddd-887b-1f563872bd1c"
+LAYER_MTYPES = {23: ["23P"], 4: ["4P"], 5: ["5P_IT", "5P_NT", "5P_PT"], 6: ["6CT", "6IT"]}
+CLIPS = ["Clip/C", "Clip/R", "Clip/S", "Monet2", "Trippy"]
+cmap = plt.cm.get_cmap("tab10", len(CLIPS))
+CLIP_COLORS = {clip: matplotlib.colors.to_hex(cmap(i)) for i, clip in enumerate(CLIPS)}
 PATTERNS = ["A", "B", "C", "D", "E", "F", "G", "H"]
-CMAP = plt.cm.get_cmap("tab10", len(PATTERNS))
-PATTERN_COLORS = {pattern: matplotlib.colors.to_hex(CMAP(i)) for i, pattern in enumerate(PATTERNS)}
+cmap = plt.cm.get_cmap("tab10", len(PATTERNS))
+PATTERN_COLORS = {pattern: matplotlib.colors.to_hex(cmap(i)) for i, pattern in enumerate(PATTERNS)}
+
+
+def setup_imshow(npzf_name, t_start, t_end, conn_mat):
+    """Loads deconvolved spikes from MICrONS (saved to npz in `assemblyfire`)
+    maps idx to the structural connectome and orders cells based on mtypes"""
+    tmp = np.load(npzf_name)
+    df = pd.DataFrame(tmp["spikes"], index=tmp["idx"], columns=tmp["t"])
+    df = df.loc[:, (t_start <= df.columns) & (df.columns < t_end)]
+    stim_times, clips = tmp["stim_times"], tmp["pattern_names"]
+    idx = np.where((t_start < stim_times) & (stim_times < t_end))[0]
+    stim_times, clips = stim_times[idx], clips[idx]
+    # match idx to structural data
+    df.loc[df.index.drop_duplicates(keep=False)]  # drop duplicate idx
+    valid_idx = conn_mat.vertices.id[np.isin(conn_mat.vertices.id, df.index)]
+    df = df.loc[df.index.isin(valid_idx)]
+    # sort by mtype
+    valid_idx_tmp = pd.Series(valid_idx.index.to_numpy(), index=valid_idx.to_numpy())
+    mtypes = conn_mat.vertices["cell_type"].loc[valid_idx_tmp[df.index].to_numpy()].sort_values()
+    data = df.loc[valid_idx[mtypes.index.to_numpy()].to_numpy()].to_numpy()
+    # get layer boundaries
+    mtypes.reset_index(drop=True, inplace=True)
+    yticks, yticklabels = [], []
+    for layer, layer_mtypes in LAYER_MTYPES.items():
+        yticks.append(int(mtypes.loc[mtypes.isin(layer_mtypes)].index.to_numpy().mean()))
+        yticklabels.append("L%s" % layer)
+    return data, df.columns.to_numpy(), stim_times, clips, yticks, yticklabels
 
 
 def _calc_rate(spike_times, n, t_start, t_end, bin_size=10):
@@ -91,6 +124,27 @@ def setup_input_raster(sim, t_start, t_end):
            stim_config["props"]["pattern_grps"], np.array(stim_config["props"]["grp_pos"])
 
 
+def plot_imshow(data, t, stim_times, clips, yticks, yticklabels, fig_name):
+    """..."""
+    fig = plt.figure(figsize=(8, 2))
+    ax = fig.add_subplot(1, 1, 1)
+    i = ax.imshow(data, cmap="Reds", norm=matplotlib.colors.LogNorm(), aspect="auto", interpolation=None)
+    plt.colorbar(i)
+    ax2 = ax.twinx()
+    ax2.plot(gaussian_filter1d(np.mean(data, axis=0), 2), color="black")
+    for i, (t_start, t_end) in enumerate(zip(stim_times[:-1], stim_times[1:])):  # the last won't show...
+        idx = [np.searchsorted(t, t_start), np.searchsorted(t, t_end)]
+        ax.plot(idx, [1, 1], CLIP_COLORS[clips[i]], lw=3)
+        ax.text(int(np.mean(idx)), -1, clips[i], ha="center", va="bottom", fontsize=7, weight="bold")
+    ax.set_xticks(np.linspace(0, data.shape[1], 8))
+    ax.set_xticklabels(np.around((np.linspace(t[0], t[-1], 8) - t[0]) / 5).astype(int) * 5)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(yticklabels)
+    ax2.set_yticks([])
+    fig.savefig(fig_name, bbox_inches="tight", transparent=True, dpi=500)
+    plt.close(fig)
+
+
 def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, yticklabels, fig_dir):
     """Raster and firing rates"""
     t_rate = np.linspace(xlim[0], xlim[1], len(rates["EXC"]))
@@ -147,16 +201,15 @@ def plot_input_raster(spike_times, spiking_ys, rate, xlim, ylim,
 
 
 if __name__ == "__main__":
-    t_start, t_end = 19200, 21200
+    session_id, scan_id = 4, 7
+    t_start, t_end = 110, 210  # s
+    npzf_name = os.path.join(MICRONS_FN_DATA_DIR, "MICrONS_session%i_scan%i.npz" % (session_id, scan_id))
+    plot_imshow(*setup_imshow(npzf_name, t_start, t_end, load_connectome(STRUCTURAL_DATA_DIR, "MICrONS")),
+                "figs/paper/MICrONS_session%i_scan%i.png" % (session_id, scan_id))
+
+    t_start, t_end = 19200, 21200  # ms
     sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "0", "BlueConfig"))
     plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/BBP_raster.png")
     plot_input_raster(*setup_input_raster(sim, t_start, t_end), "figs/paper/")
-
-
-
-
-
-
-
 
 
