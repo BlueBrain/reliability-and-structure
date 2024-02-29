@@ -9,7 +9,7 @@ import pandas as pd
 from scipy.stats import pearsonr, zscore
 import sys
 sys.path.append("../../../library")
-from coupling_coefficient import coupling_coefficient_loo, cc_loo_ctrls, normalize_cc
+from coupling_coefficient import normalize_cc
 from structural_basic import *
 import conntility
 from connalysis.network import stats as nstats
@@ -29,70 +29,6 @@ LAYER_DICT = {"23P": 23, "4P": 4, "5P_IT": 5, "5P_NP": 5, "5P_PT": 5, "6IT": 6, 
 L234_MTYPES = ["23P", "4P"]
 COLORS = {"all": "tab:orange", "sink": "tab:green", "source": "tab:blue"}
 MARKERS = {"all": "o", "sink": ">", "source":"<"}
-
-
-def get_functional_data(npzf_name, conn_mat):
-    """Loads ''spikes'' and oracle score from MICrONS functional data (saved to npz in `assemblyfire`),
-    maps idx to the structural connectome, calculates coupling coefficients
-    and padds everything with nans to have the same shape (and index) as the structural data"""
-    tmp = np.load(npzf_name)
-    idx, spikes = tmp["idx"], tmp["spikes"]
-    # drop duplicated idx and get oracle scores
-    unique_idx, counts = np.unique(idx, return_counts=True)
-    idx_tmp = np.in1d(idx, unique_idx[counts == 1])
-    idx, spikes = idx[idx_tmp], spikes[idx_tmp, :]
-    oracle_scores = pd.Series(tmp["oracle_scores"][idx_tmp], index=idx)
-    oracle_scores = oracle_scores.loc[oracle_scores.notna()]
-    # match idx to structural data
-    valid_idx = conn_mat.vertices.id[np.isin(conn_mat.vertices.id, oracle_scores.index)]
-    oracle_scores = oracle_scores.loc[oracle_scores.index.isin(valid_idx)]
-    valid_idx_tmp = pd.Series(valid_idx.index.to_numpy(), index=valid_idx.to_numpy())
-    oracle_scores = pd.Series(oracle_scores.to_numpy(), index=valid_idx_tmp.loc[oracle_scores.index].to_numpy()).sort_index()
-    # index out spikes as well (and sort corresponding gids)
-    idx_tmp = np.where(np.in1d(idx, valid_idx_tmp.index.to_numpy()))[0]
-    gids = valid_idx_tmp.loc[idx[idx_tmp]].to_numpy()
-    sort_idx = np.argsort(gids)
-    spikes, gids = spikes[idx_tmp[sort_idx], :], gids[sort_idx]
-    # get rates and coupling coefficients
-    rates = pd.Series(np.mean(spikes, axis=1), index=gids)
-    ccs = pd.Series(coupling_coefficient_loo(spikes), index=gids)
-    data = cc_loo_ctrls(spikes)
-    columns = ["coupling_coeff_ctrl_%i" % i for i in range(data.shape[1])]
-    cc_ctrls = pd.DataFrame(data, index=gids, columns=columns)
-    # padd everything with NaNs
-    idx = conn_mat.vertices.index.to_numpy()
-    data = np.full(len(idx), np.nan)
-    data[rates.index.to_numpy()] = rates.to_numpy()
-    rates = pd.Series(data, index=idx, name="rate")
-    data = np.full(len(idx), np.nan)
-    data[oracle_scores.index.to_numpy()] = oracle_scores.to_numpy()
-    oracle_scores = pd.Series(data, index=idx, name="oracle_score")
-    data = np.full(len(idx), np.nan)
-    data[ccs.index.to_numpy()] = ccs.to_numpy()
-    ccs = pd.Series(data, index=idx, name="coupling_coeff")
-    data = np.full((len(idx), len(columns)), np.nan)
-    data[cc_ctrls.index.to_numpy()] = cc_ctrls.to_numpy()
-    cc_ctrls = pd.DataFrame(data, index=idx, columns=columns)
-    return rates, oracle_scores, ccs, cc_ctrls
-
-
-def load_functional_data(session_idx, scan_idx, conn_mat, pklf_name=None):
-    """Either loads save DataFrame or calls `get_functional_data()` from above across scans"""
-    if pklf_name is None or (pklf_name is not None and not os.path.isfile(pklf_name)):
-        dfs = []
-        for session_id, scan_id in zip(session_idx, scan_idx):
-            name_tag = "session%i_scan%i" % (session_id, scan_id)
-            rates, oss, ccs, cc_ctrls = get_functional_data(os.path.join(FUNCTIONAL_DATA_DIR,
-                                                                         "MICrONS_%s.npz" % name_tag), conn_mat)
-            df = pd.concat([rates, oss, ccs, cc_ctrls], axis=1)
-            df.columns = pd.MultiIndex.from_arrays([np.full(len(df.columns), name_tag), df.columns.to_numpy()])
-            dfs.append(df)
-        df = pd.concat(dfs, axis=1)
-        if pklf_name is not None:
-            df.to_pickle(pklf_name)
-    else:
-        df = pd.read_pickle(pklf_name)
-    return df
 
 
 def load_simplex_list(maximal=True):
@@ -122,7 +58,7 @@ def plot_lw_rates(df, fig_name):
     sns.boxplot(x="layer", y="rate", order=[23, 4, 5, 6], linewidth=0.5, fliersize=0, data=df, ax=ax)
     sns.stripplot(x="layer", y="rate", order=[23, 4, 5, 6], color="black", dodge=True, size=1., jitter=0.1, data=df, ax=ax)
     sns.despine(trim=True, offset=1)
-    fig.savefig(fig_name, bbox_inches="tight", transparent=True)
+    fig.savefig(fig_name, bbox_inches="tight", dpi=100)
     plt.close(fig)
 
 
@@ -135,7 +71,7 @@ def plot_oracle_score_vs_x(df, x, fig_name):
     ax.text(df[x].quantile(0.99), 0, "r = %.2f" % pearsonr(df[x].to_numpy(), df["oracle_score"].to_numpy()).statistic,
             horizontalalignment="center", fontsize=5)
     sns.despine(trim=True, offset=1)
-    fig.savefig(fig_name, bbox_inches="tight", transparent=True)
+    fig.savefig(fig_name, bbox_inches="tight", dpi=100)
     plt.close(fig)
 
 
@@ -156,7 +92,7 @@ def plot_y_vs_sdim(stats, node_part_sums, ylabel, fig_name, text_offset=0.01):
     ax.set_ylabel(ylabel)
     ax.legend(frameon=False)
     sns.despine(trim=True, offset=1)
-    fig.savefig(fig_name, bbox_inches="tight", transparent=True)
+    fig.savefig(fig_name, bbox_inches="tight", dpi=100)
     plt.close(fig)
 
 
@@ -193,7 +129,7 @@ def plot_y_vs_sdim_summary(dict, ylabel, fig_name):
     ax.set_ylabel(ylabel)
     ax.legend(frameon=False, bbox_to_anchor=(1., 1.1))
     sns.despine(trim=True, offset=1)
-    fig.savefig(fig_name, bbox_inches="tight", transparent=True)
+    fig.savefig(fig_name, bbox_inches="tight", dpi=100)
     plt.close(fig)
 
 
@@ -215,18 +151,17 @@ def plot_y_vs_sdim_summary_paper(dict, ylim, fig_name):
     plt.close(fig)
 
 
-def main_functional(conn_mat, fn_df,  session_idx, scan_idx):
+def main_functional(conn_mat, fn_df):
     dfs = []
-    for session_id, scan_id in zip(session_idx, scan_idx):
-        name_tag = "session%i_scan%i" % (session_id, scan_id)
-        df = fn_df[name_tag]
+    for session in fn_df.columns.get_level_values(0).unique():
+        df = fn_df[session]
         df = df.loc[df["rate"].notna()]
         df["mtype"] = conn_mat.vertices.loc[df.index, "cell_type"]
         df["layer"] = df["mtype"].map(LAYER_DICT)
         dfs.append(df)
-        plot_lw_rates(df, "figs/MICrONS_%s_l-w_rate.pdf" % name_tag)
-        plot_oracle_score_vs_x(df, "rate", "figs/MICrONS_%s_oracle_score_vs_rate.pdf" % name_tag)
-        plot_oracle_score_vs_x(df, "coupling_coeff", "figs/MICrONS_%s_oracle_score_vs_coupling_coeff.pdf" % name_tag)
+        plot_lw_rates(df, "figs/MICrONS_%s_l-w_rate.pdf" % session)
+        plot_oracle_score_vs_x(df, "rate", "figs/MICrONS_%s_oracle_score_vs_rate.pdf" % session)
+        plot_oracle_score_vs_x(df, "coupling_coeff", "figs/MICrONS_%s_oracle_score_vs_coupling_coeff.pdf" % session)
     df = pd.concat(dfs)
     mean_df = df.groupby(df.index)[["rate", "oracle_score", "coupling_coeff"]].agg("mean")
     mean_df["mtype"] = conn_mat.vertices.loc[mean_df.index, "cell_type"]
@@ -236,7 +171,7 @@ def main_functional(conn_mat, fn_df,  session_idx, scan_idx):
     plot_oracle_score_vs_x(df, "coupling_coeff", "figs/MICrONS_oracle_score_vs_coupling_coeff.pdf")
 
 
-def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maximal=False, only_l234=False):
+def main(conn_mat, fn_df, fn_feature="oracle_score", maximal=False, only_l234=False):
     max_str = "_max_" if maximal else "_"
     l234_str = "_L234_" if only_l234 else "_"
     simplices = load_simplex_list(maximal=maximal)
@@ -246,26 +181,25 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
     all_node_part_sums = node_part.sum()
 
     sum_stats, frac_node_parts = {}, {}
-    for session_id, scan_id in zip(session_idx, scan_idx):
-        name_tag = "session%i_scan%i" % (session_id, scan_id)
+    for session in fn_df.columns.get_level_values(0).unique():
         if fn_feature != "coupling_coeff":
-            functional_data = fn_df[name_tag, fn_feature].copy()
+            functional_data = fn_df[session, fn_feature].copy()
         else:
-            functional_data = normalize_cc(fn_df[name_tag].drop(columns=["rate", "oracle_score"]))
+            functional_data = normalize_cc(fn_df[session].drop(columns=["rate", "oracle_score"]))
         if only_l234:
             mtypes = conn_mat.vertices.loc[functional_data.loc[functional_data.notna()].index, "cell_type"]
             functional_data.loc[mtypes.loc[~mtypes.isin(L234_MTYPES)].index] = np.nan
         stats = agg_along_dims(nstats.node_stats_per_position(simplices, functional_data,
                                                               dims=simplices.index.drop(0), with_multiplicity=True))
-        sum_stats[name_tag] = stats["all"]["mean"].to_numpy()
+        sum_stats[session] = stats["all"]["mean"].to_numpy()
         node_part_sums = node_part.loc[functional_data.notna()].sum()
-        frac_node_parts[name_tag] = node_part_sums.loc[1:].to_numpy() / all_node_part_sums.loc[1:].to_numpy()
+        frac_node_parts[session] = node_part_sums.loc[1:].to_numpy() / all_node_part_sums.loc[1:].to_numpy()
         plot_y_vs_sdim(stats, node_part_sums, "Mean %s" % fn_feature,
-                       "figs/MICrONS_%s_%s%svs%ssimplex_dim.pdf" % (name_tag, fn_feature, l234_str, max_str))
+                       "figs/MICrONS_%s_%s%svs%ssimplex_dim.png" % (session, fn_feature, l234_str, max_str))
         if maximal and not only_l234:
             legend = True if session_id == 4 and scan_id == 7 else False
             ylim = [0.05, 0.35] if fn_feature == "oracle_score" else [-1.5, 1.5]
-            plot_y_vs_sdim_paper(stats, ylim, "figs/paper/MICrONS_%s_%s.pdf" % (name_tag, fn_feature), legend=legend)
+            plot_y_vs_sdim_paper(stats, ylim, "figs/paper/MICrONS_%s_%s.pdf" % (session, fn_feature), legend=legend)
     # summary plot (using raw data from all scans)
     if fn_feature != "coupling_coeff":
         functional_data = fn_df.loc[:, fn_df.columns.get_level_values(1) == fn_feature].copy()
@@ -279,31 +213,28 @@ def main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="oracle_score", maxi
                                                           dims=simplices.index.drop(0), with_multiplicity=True))
     node_part_sums = node_part.loc[functional_data.notna()].sum()
     plot_y_vs_sdim(stats, node_part_sums, "Mean %s" % fn_feature,
-                   "figs/MICrONS_all_scans_%s%svs%ssimplex_dim.pdf" % (fn_feature, l234_str, max_str))
+                   "figs/MICrONS_all_scans_%s%svs%ssimplex_dim.png" % (fn_feature, l234_str, max_str))
     # summary plots (using results from all scans)
     plot_y_vs_sdim_summary(sum_stats, "Mean %s" % fn_feature,
-                           "figs/MICrONS_%s%svs%ssimplex_dim.pdf" % (fn_feature, l234_str, max_str))
+                           "figs/MICrONS_%s%svs%ssimplex_dim.png" % (fn_feature, l234_str, max_str))
     if maximal and not only_l234:
         plot_y_vs_sdim_summary_paper(sum_stats, ylim, "figs/paper/MICrONS_%s.pdf" % fn_feature)
     plot_y_vs_sdim_summary(frac_node_parts, "Node participation ratio",
-                           "figs/MICrONS_node_part_sum%svs%ssimplex_dim.pdf" % (l234_str, max_str))
+                           "figs/MICrONS_node_part_sum%svs%ssimplex_dim.png" % (l234_str, max_str))
 
 
 if __name__ == "__main__":
-    session_idx = [4, 5, 6, 6, 6, 7, 8, 9]
-    scan_idx = [7, 7, 2, 4, 7, 4, 5, 3]
     conn_mat = load_connectome(STRUCTURAL_DATA_DIR, "MICrONS")
-    fn_df = load_functional_data(session_idx, scan_idx, conn_mat,
-                                 pklf_name=os.path.join(FUNCTIONAL_DATA_DIR, "MICrONS_functional_summary.pkl"))
-    main_functional(conn_mat, fn_df, session_idx, scan_idx)
-    main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=True)
-    main(conn_mat, fn_df, session_idx, scan_idx, maximal=True, only_l234=False)
-    main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=True)
-    main(conn_mat, fn_df, session_idx, scan_idx, maximal=False, only_l234=False)
-    main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=True, only_l234=True)
-    main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=True, only_l234=False)
-    main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=False, only_l234=True)
-    main(conn_mat, fn_df, session_idx, scan_idx, fn_feature="coupling_coeff", maximal=False, only_l234=False)
+    fn_df = pd.read_pickle(os.path.join(FUNCTIONAL_DATA_DIR, "MICrONS_functional_summary.pkl"))
+    main_functional(conn_mat, fn_df)
+    main(conn_mat, fn_df, maximal=True, only_l234=True)
+    main(conn_mat, fn_df, maximal=True, only_l234=False)
+    main(conn_mat, fn_df, maximal=False, only_l234=True)
+    main(conn_mat, fn_df, maximal=False, only_l234=False)
+    main(conn_mat, fn_df, fn_feature="coupling_coeff", maximal=True, only_l234=True)
+    main(conn_mat, fn_df, fn_feature="coupling_coeff", maximal=True, only_l234=False)
+    main(conn_mat, fn_df, fn_feature="coupling_coeff", maximal=False, only_l234=True)
+    main(conn_mat, fn_df, fn_feature="coupling_coeff", maximal=False, only_l234=False)
 
 
 
