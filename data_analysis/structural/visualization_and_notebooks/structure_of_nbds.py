@@ -53,7 +53,7 @@ def load_data_v2():
                 continue
             df = pd.read_pickle(os.path.join(DATA_DIR, "props_%s_%s.pkl" % (conn, graph)))
             df["graph"] = graph
-            dfs.append(df[["graph", "wasserstein_deg_total"]])
+            dfs.append(df[["graph", "wasserstein_deg_total", "euclidean_edges_sc"]])
         conn_data[conn] = pd.concat(dfs, ignore_index=True)
     return conn_data
 
@@ -81,7 +81,8 @@ if __name__ == "__main__":
         ext = "png" if feature in ["0_simplices", "density"] else "pdf"
         plot_feature(conn_data, feature, "figs/%s.%s" % (feature, ext))
     conn_data = load_data_v2()
-    plot_feature(conn_data, "wasserstein_deg_total", "figs/wasserstein_deg_total.pdf")
+    for feature in ["wasserstein_deg_total", "euclidean_edges_sc"]:
+        plot_feature(conn_data, feature, "figs/%s.pdf" % feature)
 
 
 
