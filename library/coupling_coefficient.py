@@ -1,7 +1,7 @@
 """
 Functions that calculate coupling coefficent and normalize them
 (Pearson correlation of binned spikes/calcium traces with the mean centered population average)
-authors: András Ecker, Daniela Egas Santander, Michael W. Reimann; last update: 02.2024
+authors: András Ecker, Daniela Egas Santander, Michael W. Reimann; last update: 03.2024
 """
 
 import numpy as np
@@ -44,18 +44,14 @@ def coupling_coefficient_loo(traces):
     and as the above one is way faster, that's the recommended one for spikes,
     while this one for (deconvolved) calcium traces (hence what's `binned_spikes` above is `traces` here).
     (This one can still be called on spikes for testing purposes, just make sure to bin them outside this function)"""
+    traces = traces - traces.mean(axis=1, keepdims=True)
     ccs = np.zeros(traces.shape[0], dtype=np.float32)
     for i in range(1, traces.shape[0] - 1):
         other_rows = np.concatenate([traces[:i, :], traces[i+1:, :]])
-        other_rows = other_rows - other_rows.mean(axis=1, keepdims=True)
         ccs[i] = np.corrcoef(traces[i, :], np.mean(other_rows, axis=0))[0, 1]
     # deal with first and last rows separately
-    other_rows = traces[1:, :]
-    other_rows = other_rows - other_rows.mean(axis=1, keepdims=True)
-    ccs[0] = np.corrcoef(traces[0, :], np.mean(other_rows, axis=0))[0, 1]
-    other_rows = traces[:-1, :]
-    other_rows = other_rows - other_rows.mean(axis=1, keepdims=True)
-    ccs[-1] = np.corrcoef(traces[-1, :], np.mean(other_rows, axis=0))[0, 1]
+    ccs[0] = np.corrcoef(traces[0, :], np.mean(traces[1:, :], axis=0))[0, 1]
+    ccs[-1] = np.corrcoef(traces[-1, :], np.mean(traces[:-1, :], axis=0))[0, 1]
     return ccs
 
 
