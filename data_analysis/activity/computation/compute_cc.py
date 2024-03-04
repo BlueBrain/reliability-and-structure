@@ -17,7 +17,7 @@ FUNCTIONAL_DATA_DIR = "/gpfs/bbp.cscs.ch/project/proj96/home/ecker/assemblyfire/
 PROJ_DIR = "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/bbp_workflow/7b381e96-91ac-4ddd-887b-1f563872bd1c/"
 
 
-def get_microns_data(npzf_name, conn_mat):
+def get_functional_data(npzf_name, conn_mat):
     """Loads ''spikes'' and oracle score from MICrONS functional data (saved to npz in `assemblyfire`),
     maps idx to the structural connectome, calculates coupling coefficients
     and padds everything with nans to have the same shape (and index) as the structural data"""
