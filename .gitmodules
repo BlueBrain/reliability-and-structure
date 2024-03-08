@@ -1,0 +1,4 @@
+[submodule "classification/PCA_method/topological_sampling"]
+	path = classification/PCA_method/topological_sampling
+	url = https://github.com/BlueBrain/topological_sampling.git
+	branch = merge_samples

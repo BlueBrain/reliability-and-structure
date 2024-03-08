@@ -1,0 +1,11 @@
+future      
+h5py       
+networkx == 2.6.3       
+numpy == 1.21.6      
+pandas == 1.3.5       
+pickle5      
+progressbar         
+pyflagser      
+scikit-learn       
+scipy >= 1.0.0      
+simplejson      
