@@ -114,7 +114,7 @@ def spectrum_param(spectrum, parameter):
 
 
 def bls_matrix(matrix, reverse_flow=False):
-#  in: tribe matrix
+#  in: tribe matrixrc
 # out: bauer laplacian matrix
 	current_size = len(matrix)
 	return np.subtract(np.eye(current_size, dtype='float64'), tps_matrix(matrix, out_deg=reverse_flow))
@@ -483,6 +483,30 @@ def compute_parameter(job):
 
 		print('\nRecording 1 normalized betti coefficient',flush=True)
 		save_dict['nbc'] = np.array(nbc)
+
+
+	# (2 params) Reciprocal connections
+	elif job == 'rc':
+		print('Computing 2 reciprocal connection coefficients',flush=True)
+		rc = []; rcchief = []
+
+		# Iterate
+		for n in range(nnum):
+			if n%100 == 0:
+				print(str(n)+' ',end='',flush=True)
+
+			# Compute
+			tribe = closed_tribe(n)
+			current_rc = np.count_nonzero(np.multiply(tribe,np.transpose(tribe)))//2
+			current_rcchief = np.count_nonzero(np.multiply(tribe[0],np.transpose(tribe)[0]))
+
+			# Record
+			rc.append(current_rc)
+			rcchief.append(current_rcchief)
+
+		print('\nRecording 2 reciprocal connection coefficients',flush=True)
+		save_dict['rc'] = np.array(rc)
+		save_dict['rcchief'] = np.array(rcchief)
 
 
 	# Quit if not recognized job name

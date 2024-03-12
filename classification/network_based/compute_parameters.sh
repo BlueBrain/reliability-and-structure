@@ -5,4 +5,4 @@ python compute_parameters.py degrees
 python compute_parameters.py cc
 python compute_parameters.py dc
 python compute_parameters.py nbc
-
+python compute_parameters.py rc
