@@ -1,6 +1,12 @@
+[submodule "classification/PCA_method/topological_sampling"]
+	path = classification/PCA_method/topological_sampling
+	url = https://github.com/BlueBrain/topological_sampling.git
+	branch = merge_samples
+  
 [submodule "classification/network_based/TriDy"]
 	path = classification/network_based/TriDy
 	url = git@github.com:JasonPSmith/TriDy.git
+
 [submodule "classification/network_based/TriDy-tools"]
 	path = classification/network_based/TriDy-tools
 	url = git@github.com:jlazovskis/TriDy-tools.git
