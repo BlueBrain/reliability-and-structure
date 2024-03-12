@@ -1,0 +1,23 @@
+{
+  "values":{
+    "number_nbhds": 50,
+    "timebin": 25,
+    "train_set_perc": 0.6,
+    "test_repetitions": 10,
+    "spike_gid_shift": 62693,
+    "start_time" : 10,
+    "bin_number" : 2,
+    "feature_parameter": "#FPARAM",
+    "selection_parameters": ["#SPARAMS"],
+    "feature_gap" : "#FGAP",
+    "selection_order" : "top",
+    "recompute" : "False",
+    "job_order" : #JOBNUM
+  },
+  "paths":{
+    "matrix_address": "TriDy/data/mc2.npz",
+    "export_address": "TriDy/data/",
+    "spike_trains_address": "TriDy/data/spike_trains.npy",
+    "savefolder": "TriDy-tools/results/#SSHORT-#FSHORT/"
+  }
+}
