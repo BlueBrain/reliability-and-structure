@@ -48,7 +48,7 @@ if False:
 
 
 #Load dataframe which says what the top parameters are for double selection
-D=pd.read_pickle('community_database.pkl').iloc[:,7:]
+D=pd.read_pickle('community_database.pkl')
 n = len(D)
 
 #Create the names of all the second selections
