@@ -28,10 +28,14 @@ SIMS = {"baseline": "BlobStimReliability_O1v5-SONATA_Baseline",
         "RC + 1": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x2",
         "RC + 1 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x2",
         "RC + 2": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x4",
-        "RC + 2 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x4"}
+        "RC + 2 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x4",
+        "RC + 3": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x8",
+        "RC + 3 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x8",
+        "RC + 4": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x16",
+        "RC + 4 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x16"}
 COLS_REMOVE, COLS_ADD = plt.colormaps["summer_r"](np.linspace(0.2, 0.9, 4)), plt.cm.RdPu(np.linspace(0.2, 0.9, 4))
 CMAP = {"RC - 1": COLS_REMOVE[0], "RC - 2": COLS_REMOVE[1],  "RC - 3": COLS_REMOVE[2], "RC - 4": COLS_REMOVE[3],
-        "RC + 1": COLS_ADD[0], "RC + 2": COLS_ADD[1]}
+        "RC + 1": COLS_ADD[0], "RC + 2": COLS_ADD[1], "RC + 3": COLS_ADD[2], "RC + 4": COLS_ADD[3]}
 
 
 
@@ -79,7 +83,7 @@ def plot_scounts(df, x, fig_name):
     plt.close(fig)
 
 
-def plot_rel_means(rel_means, pvals, fig_name, sign_y=0.011):
+def plot_rel_means(rel_means, pvals, fig_name, sign_y=0.1):
     """Plots means relative to baseline"""
     colors, edge_colors, sign = [], [], []
     for i, mod_name in enumerate(rel_means.index.to_numpy()):
@@ -108,8 +112,8 @@ def plot_scatter(rel_edges, rel_means, fig_name):
     """Plots means vs. pct. of edges changed"""
     rem = ["RC - %i" %i for i in range(1, 5)]
     rem_ctrl = ["RC - %i (ctrl)" %i for i in range(1, 4)]
-    add = ["RC + %i" %i for i in range(1, 3)]
-    add_ctrl = ["RC + %i (ctrl)" % i for i in range(1, 3)]
+    add = ["RC + %i" %i for i in range(1, 5)]
+    add_ctrl = ["RC + %i (ctrl)" % i for i in range(1, 5)]
     colors = []
     for mod_name in rel_means.index.to_numpy():
         if " (ctrl)" in mod_name:
@@ -132,14 +136,14 @@ def plot_scatter(rel_edges, rel_means, fig_name):
 if __name__ == "__main__":
     rels = load_reliabilities()
     scs = load_simplex_counts()
-    for x in ["RC - %i" % i for i in range(1, 5)] + ["RC + %i" % i for i in range(1, 3)]:
+    for x in ["RC - %i" % i for i in range(1, 5)] + ["RC + %i" % i for i in range(1, 5)]:
         plot_rels(rels, x, "figs/paper/%s_reliability.pdf" % x.replace(" ", ""))
         plot_scounts(scs, x, "figs/paper/%s_simplex_counts.pdf" % x.replace(" ", ""))
     means = rels.mean()
     rel_means = means.drop("baseline") - means["baseline"]
     pvals = {mod_name: kruskal(rels["baseline"].to_numpy(), rels[mod_name].to_numpy(), nan_policy="omit").pvalue
              for mod_name in rel_means.index.to_numpy()}
-    plot_rel_means(rel_means, "figs/paper/rel_means.pdf")
+    plot_rel_means(rel_means, pvals, "figs/paper/rel_means.pdf")
     n_edges = scs.loc[1]
     rel_edges = np.abs(1 - n_edges.drop("baseline") / n_edges["baseline"]) * 100
     plot_scatter(rel_edges, rel_means, "figs/paper/rel_means_vs_rel_edges.pdf")
