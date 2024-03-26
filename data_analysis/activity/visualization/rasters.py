@@ -24,7 +24,7 @@ sns.set(style="ticks", context="paper", font="Helvetica Neue",
 RED, BLUE = "#e32b14", "#3271b8"
 STRUCTURAL_DATA_DIR = "/gpfs/bbp.cscs.ch/home/egassant/reliability_and_structure/data_analysis/data"
 MICRONS_FN_DATA_DIR = "/gpfs/bbp.cscs.ch/project/proj96/home/ecker/assemblyfire/MICrONS"
-BBP_FN_DATA_DIR = "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/bbp_workflow/7b381e96-91ac-4ddd-887b-1f563872bd1c"
+BBP_FN_DATA_DIR = "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/bbp_workflow/"
 LAYER_MTYPES = {23: ["23P"], 4: ["4P"], 5: ["5P_IT", "5P_NT", "5P_PT"], 6: ["6CT", "6IT"]}
 CLIPS = ["Clip/C", "Clip/R", "Clip/S", "Monet2", "Trippy"]
 cmap = plt.cm.get_cmap("tab10", len(CLIPS))
@@ -101,7 +101,8 @@ def setup_raster(sim, t_start, t_end):
 def setup_input_raster(sim, t_start, t_end):
     """Organize gids by rate and get stimulus train"""
     # spikes
-    input_fname = os.path.abspath(os.path.join(BBP_FN_DATA_DIR, "0", sim.config["Stimulus_spikeReplay"]["SpikeFile"]))
+    input_fname = os.path.abspath(os.path.join(BBP_FN_DATA_DIR, "7b381e96-91ac-4ddd-887b-1f563872bd1c", "0",
+                                               sim.config["Stimulus_spikeReplay"]["SpikeFile"]))
     spikes = pd.read_csv(input_fname, sep="\t").reset_index()
     spikes.rename(columns={"index": "t", "/scatter": "gid"}, inplace=True)
     spikes = spikes.loc[(t_start <= spikes["t"]) & (spikes["t"] <= t_end)]
@@ -145,10 +146,10 @@ def plot_imshow(data, t, stim_times, clips, yticks, yticklabels, fig_name):
     plt.close(fig)
 
 
-def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, yticklabels, fig_name):
+def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, yticklabels, fig_name, fig_size=(8, 2)):
     """Raster and firing rates"""
     t_rate = np.linspace(xlim[0], xlim[1], len(rates["EXC"]))
-    fig = plt.figure(figsize=(8, 2))
+    fig = plt.figure(figsize=fig_size)
     ax = fig.add_subplot(1, 1, 1)
     ax.set_facecolor((0.95, 0.95, 0.95))
     ax.scatter(spike_times, spiking_ys, c=cols, alpha=0.9, marker='.', s=0.5, edgecolor="none")
@@ -208,8 +209,18 @@ if __name__ == "__main__":
                 "figs/paper/MICrONS_session%i_scan%i.png" % (session_id, scan_id))
 
     t_start, t_end = 19200, 21200  # ms
-    sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "0", "BlueConfig"))
+    sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "7b381e96-91ac-4ddd-887b-1f563872bd1c", "0", "BlueConfig"))
     plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/BBP_raster.png")
     plot_input_raster(*setup_input_raster(sim, t_start, t_end), "figs/paper/")
+
+    t_start, t_end = 3000, 5000
+    sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "7ea326a9-79c8-4a24-93c3-207c89629fdf", "0", "BlueConfig"))
+    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+5_raster.png", fig_size=(4., 1.6))
+    sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "364338ae-7913-4790-8d3a-3080fea42633", "0", "BlueConfig"))
+    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+5_ctrl_raster.png", fig_size=(4., 1.6))
+    sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "ab6764bb-9f0e-47d7-84ac-6b5114a587e5", "0", "BlueConfig"))
+    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+6_raster.png", fig_size=(4., 1.6))
+    sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "d4e2b48e-2faa-46cf-a099-2489f10a45e8", "0", "BlueConfig"))
+    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+6_ctrl_raster.png", fig_size=(4., 1.6))
 
 
