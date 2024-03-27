@@ -36,14 +36,16 @@ SIMS = {"baseline": "BlobStimReliability_O1v5-SONATA_Baseline",
         "RC + 4": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x5",
         "RC + 4 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x5",
         "RC + 5": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x8",
-        "RC + 5 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x8"}
+        "RC + 5 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x8"} | {"%ik" % i:
+        "BlobStimReliability_O1v5-SONATA_ConnRewireEnhanced%iK" % i for i in [100, 200, 300, 400, 500, 670]}
         # "RC + 6": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x16",
         # "RC + 6 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x16"}
-COLS_REMOVE = plt.colormaps["summer_r"](np.linspace(0.2, 0.9, 4))
-COLS_ADD = plt.cm.RdPu(np.concatenate([np.linspace(0.2, 0.9, 4), np.array([1.])]))
-CMAP = {"RC - 1": COLS_REMOVE[0], "RC - 2": COLS_REMOVE[1],  "RC - 3": COLS_REMOVE[2], "RC - 4": COLS_REMOVE[3],
-        "RC + 1": COLS_ADD[0], "RC + 2": COLS_ADD[1], "RC + 3": COLS_ADD[2], "RC + 4": COLS_ADD[3],
-        "RC + 5": COLS_ADD[4]}
+COLS_REMOVE, COLS_ENH = plt.colormaps["summer_r"](np.linspace(0.2, 0.9, 4)), plt.cm.Reds(np.linspace(0.2, 0.9, 6))
+COLS_ADD = plt.cm.RdPu(np.concatenate([np.array([0.1]), np.linspace(0.2, 0.9, 4)]))
+CMAP = {"RC - 1": COLS_REMOVE[3], "RC - 2": COLS_REMOVE[2],  "RC - 3": COLS_REMOVE[1], "RC - 4": COLS_REMOVE[0],
+        "100k": COLS_ENH[5], "200k": COLS_ENH[4], "300k": COLS_ENH[3], "400k": COLS_ENH[2], "500k": COLS_ENH[1],
+        "670k": COLS_ENH[0], "RC + 1": COLS_ADD[4], "RC + 2": COLS_ADD[3], "RC + 3": COLS_ADD[2], "RC + 4": COLS_ADD[1],
+        "RC + 5": COLS_ADD[0]}
 
 
 def load_reliabilities():
@@ -53,9 +55,13 @@ def load_reliabilities():
 
 
 def load_simplex_counts():
-    return pd.DataFrame({mod_name: pd.read_pickle(os.path.join(SIM_DIR, sim_name, "working_dir",
-                                                               "simplex_counts.pkl"))["simplex_counts_EXC"]
-                         for mod_name, sim_name in SIMS.items()})
+    dfs = {}
+    for mod_name, sim_name in SIMS.items():
+        if mod_name[-1] != "k":
+            dfs[mod_name] = pd.read_pickle(os.path.join(SIM_DIR, sim_name, "working_dir", "simplex_counts.pkl"))["simplex_counts_EXC"]
+        else:
+            dfs[mod_name] = pd.read_pickle(os.path.join(SIM_DIR, sim_name, "working_dir", "simplex_counts_EE.pkl"))
+    return pd.DataFrame(dfs)
 
 
 def get_edges_diff():
@@ -145,18 +151,25 @@ def plot_rel_means(rel_means, pvals, fig_name, sign_y=0.07):
 
 def plot_scatter(rel_edges, rel_means, fig_name):
     """Plots means vs. pct. of edges changed"""
-    colors, mod, mod_ctrl = [], [], []
+    colors, mod, mod_ctrl, enh = [], [], [], []
     for mod_name in rel_means.index.to_numpy():
         if " (ctrl)" in mod_name:
             colors.append(CMAP[mod_name.replace(" (ctrl)", "")])
             mod_ctrl.append(mod_name)
+        elif mod_name[-1] == "k":
+            colors.append(CMAP[mod_name])
+            enh.append(mod_name)
         else:
             colors.append(CMAP[mod_name])
             mod.append(mod_name)
 
     fig = plt.figure(figsize=(1., 0.8))
     ax = fig.add_subplot(1, 1, 1)
-    ax.plot(rel_edges[mod].to_numpy(), rel_means[mod].to_numpy(), c=colors[int(len(colors) / 2)])
+    if len(enh):
+        ax.plot(rel_edges[mod].to_numpy(), rel_means[mod].to_numpy(), c=CMAP["RC + 3"])
+        ax.plot(rel_edges[enh].to_numpy(), rel_means[enh].to_numpy(), c=CMAP["300k"], ls="--")
+    else:
+        ax.plot(rel_edges[mod].to_numpy(), rel_means[mod].to_numpy(), c=CMAP["RC - 2"])
     ax.plot(rel_edges[mod_ctrl].to_numpy(), rel_means[mod_ctrl].to_numpy(), c="gray", ls="--")
     ax.scatter(rel_edges.to_numpy(), rel_means.to_numpy(), s=10, c=colors)
     sns.despine(trim=True, offset=1)
@@ -177,12 +190,11 @@ if __name__ == "__main__":
     for i, j in zip(row_idx, col_idx):
         data[i, j] = kruskal(rels[mod_names[i]], rels[mod_names[j]], nan_policy="omit").pvalue
     pvals = pd.DataFrame(data, index=mod_names, columns=mod_names)
-    plot_pvals(pvals.iloc[1:, 1:], "figs/paper/rel_pvals.pdf")
+    plot_pvals(pvals.iloc[1:18, 1:18], "figs/paper/rel_pvals.pdf")
     means = rels.mean()
     rel_means = means.drop("baseline") - means["baseline"]
-    mod_names = list(SIMS.keys())
     plot_rel_means(rel_means.iloc[:7], pvals, "figs/paper/rel_means-.pdf", sign_y=0.0001)
-    plot_rel_means(rel_means.iloc[7:], pvals, "figs/paper/rel_means+.pdf")
+    plot_rel_means(rel_means.iloc[7:17], pvals, "figs/paper/rel_means+.pdf")
     rel_edges = get_edges_diff()
     plot_scatter(rel_edges.iloc[:7], rel_means.iloc[:7], "figs/paper/rel_means_vs_rel_edges-.pdf")
     plot_scatter(rel_edges.iloc[7:], rel_means.iloc[7:], "figs/paper/rel_means_vs_rel_edges+.pdf")
