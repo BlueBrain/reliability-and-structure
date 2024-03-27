@@ -33,8 +33,8 @@ If you use this software, kindly use the following BibTeX entry for citation:
   journal={bioRxiv},
   pages={2024--03},
   year={2024},
-  publisher={Cold Spring Harbor Laboratory}
-  doi = {10.1101/2024.03.15.585196},
+  publisher={Cold Spring Harbor Laboratory},
+  doi = {10.1101/2024.03.15.585196}
 }
 ```
 
