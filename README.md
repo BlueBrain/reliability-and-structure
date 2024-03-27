@@ -10,15 +10,17 @@ The repository is structured as follows:
 - **library:** Library of functions for all the analysis related to the publication except for classficiation
 - **data_analysis:** In this directory we provide all the scripts use to compute the different network metrics and their relation to function.
   - **structural:** Subdirectory where the analysis of purely structural properties for all connectomes and their corresponding controls is performed.
-      - **code:** Scripts that generate the data.  Local readme provided describing the scripts.
+      - **code:** Scripts that generate the data.  [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/data_analysis/structural/code/README.md)
       - **visualization_and_notebooks:** Scripts or notebooks to visualize data or generate figures 
   - **activity:** Subdirectory where the analysis of properties that relate to function or link function to structure in BBP and MICrONS is performed.
-      - **computation:** Scripts that generate the data. Local readme provided describing the scripts.
+      - **computation:** Scripts that generate the data. [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/data_analysis/activity/computation/README.md)
       - **visualization:** Scripts or notebooks to visualize data or generate figures
 - **classification:**
-  - **PCA_method:**
-  - **network_based:**
+  - **PCA_method:** [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/classification/PCA_method/README.md)
+  - **network_based:** [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/classification/network_based/README.md)
   - **visualization:**
+
+Local README files provide a description of the scripts used for computation.
  
 
 ## Citation  
@@ -31,7 +33,8 @@ If you use this software, kindly use the following BibTeX entry for citation:
   journal={bioRxiv},
   pages={2024--03},
   year={2024},
-  publisher={Cold Spring Harbor Laboratory}
+  publisher={Cold Spring Harbor Laboratory},
+  doi = {10.1101/2024.03.15.585196}
 }
 ```
 
@@ -39,7 +42,8 @@ If you use this software, kindly use the following BibTeX entry for citation:
 - [ ] Rename directories to consistent names.
 - [ ] Fill in required descriptions above
 - [ ] Add copy right and link to the paper
-- [ ] Add license
+- [x] Add license
+- [ ] Check license
 - [ ] Add requirements.txt
 - [ ] Installable library?
 - [ ] Link to zenodo and say something about dowloading this somewhere? Add zenodo DOI?
