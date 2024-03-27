@@ -13,6 +13,6 @@ Here we list the scripts provided and describe what properties they are used to 
   - [ ] BBP 
 - [ ] Compute CC
   - [ ] MICrONS
-  - [ ] BBP
+  - [ ] BBP, should Michael's original notebook go away?
 - [ ] Compute dimension (efficiency)
   - [ ] BBP
