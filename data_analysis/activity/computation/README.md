@@ -9,6 +9,8 @@ Here we list the scripts provided and describe what properties they are used to 
 
 ## TODO
 
+- [ ] Preprocessing
+  - [ ] BBP 
 - [ ] Compute CC
   - [ ] MICrONS
   - [ ] BBP
