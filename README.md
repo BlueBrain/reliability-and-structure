@@ -43,3 +43,5 @@ If you use this software, kindly use the following BibTeX entry for citation:
 - [ ] Add requirements.txt
 - [ ] Installable library?
 - [ ] Link to zenodo and say something about dowloading this somewhere? Add zenodo DOI?
+- [ ] Name?
+- [ ] Delete unnecessary files
