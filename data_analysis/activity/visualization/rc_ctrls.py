@@ -21,31 +21,31 @@ sns.set(style="ticks", context="paper", font="Helvetica Neue",
 SIM_DIR = "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/simulations/"
 SIMS = {"baseline": "BlobStimReliability_O1v5-SONATA_Baseline",
         "RC - 1": "BlobStimReliability_O1v5-SONATA_RecipRemoval_StructDim56",
-        "RC - 1 (ctrl)": "BlobStimReliability_O1v5-SONATA_RecipRemoval_Unstruct-0",
+        "RC* - 1": "BlobStimReliability_O1v5-SONATA_RecipRemoval_Unstruct-0",
         "RC - 2": "BlobStimReliability_O1v5-SONATA_RecipRemoval_StructDim56_456",
-        "RC - 2 (ctrl)": "BlobStimReliability_O1v5-SONATA_RecipRemoval_Unstruct-1",
+        "RC* - 2": "BlobStimReliability_O1v5-SONATA_RecipRemoval_Unstruct-1",
         "RC - 3": "BlobStimReliability_O1v5-SONATA_RecipRemoval_StructDim456",
-        "RC - 3 (ctrl)": "BlobStimReliability_O1v5-SONATA_RecipRemoval_Unstruct-2",
+        "RC* - 3": "BlobStimReliability_O1v5-SONATA_RecipRemoval_Unstruct-2",
         "RC - 4": "BlobStimReliability_O1v5-SONATA_RecipRemoval_Unstruct-3",  # not possible to give it a pair
         "RC + 1": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x2",
-        "RC + 1 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x2",
+        "RC* + 1": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x2",
         "RC + 2": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x3",
-        "RC + 2 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x3",
+        "RC* + 2": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x3",
         "RC + 3": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x4",
-        "RC + 3 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x4",
+        "RC* + 3": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x4",
         "RC + 4": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x5",
-        "RC + 4 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x5",
+        "RC* + 4": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x5",
         "RC + 5": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x8",
-        "RC + 5 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x8"} | {"%ik" % i:
+        "RC* + 5": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x8"} | {"%ik" % i:
         "BlobStimReliability_O1v5-SONATA_ConnRewireEnhanced%iK" % i for i in [100, 200, 300, 400, 500, 670]}
         # "RC + 6": "BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x16",
-        # "RC + 6 (ctrl)": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x16"}
+        # "RC* + 6": "BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x16"}
 COLS_REMOVE, COLS_ENH = plt.colormaps["summer_r"](np.linspace(0.2, 0.9, 4)), plt.cm.Reds(np.linspace(0.2, 0.9, 6))
-COLS_ADD = plt.cm.RdPu(np.concatenate([np.array([0.1]), np.linspace(0.2, 0.9, 4)]))
+COLS_ADD = plt.cm.RdPu(np.linspace(0.2, 0.9, 4))
 CMAP = {"RC - 1": COLS_REMOVE[3], "RC - 2": COLS_REMOVE[2],  "RC - 3": COLS_REMOVE[1], "RC - 4": COLS_REMOVE[0],
         "100k": COLS_ENH[5], "200k": COLS_ENH[4], "300k": COLS_ENH[3], "400k": COLS_ENH[2], "500k": COLS_ENH[1],
-        "670k": COLS_ENH[0], "RC + 1": COLS_ADD[4], "RC + 2": COLS_ADD[3], "RC + 3": COLS_ADD[2], "RC + 4": COLS_ADD[1],
-        "RC + 5": COLS_ADD[0]}
+        "670k": COLS_ENH[0], "RC + 1": COLS_ADD[3], "RC + 2": COLS_ADD[2], "RC + 3": COLS_ADD[1], "RC + 4": COLS_ADD[0],
+        "RC + 5": "lightsalmon"}
 
 
 def load_reliabilities():
@@ -80,7 +80,7 @@ def plot_rels(df, x, fig_name):
     ax = fig.add_subplot(1, 1, 1)
     sns.kdeplot(x=x, color=CMAP[x], clip=[0, 1], data=df, ax=ax)
     if x != "RC - 4":
-        sns.kdeplot(x=x + " (ctrl)", color="gray", ls="--", clip=[0, 1], data=df, ax=ax)
+        sns.kdeplot(x=x.replace("RC", "RC*"), color="gray", ls="--", clip=[0, 1], data=df, ax=ax)
     sns.kdeplot(x="baseline", color="black", ls="--", lw=0.75, alpha=0.75, clip=[0, 1], data=df, ax=ax)
     ax.set_xlim([0, 1])
     ax.set_xlabel("")
@@ -96,7 +96,7 @@ def plot_scounts(df, x, fig_name):
     ax = fig.add_subplot(1, 1, 1)
     ax.plot(df[x], color=CMAP[x])
     if x != "RC - 4":
-        ax.plot(df[x + " (ctrl)"], color="gray", ls="--")
+        ax.plot(df[x.replace("RC", "RC*")], color="gray", ls="--")
     ax.plot(df["baseline"], color="black", ls="--", lw=0.75)
     ax.set_xticks([0, 5])
     ax.set_yticks([])
@@ -123,7 +123,7 @@ def plot_rel_means(rel_means, pvals, fig_name, sign_y=0.07):
     """Plots means relative to baseline"""
     colors, hatches, sign = [], [], []
     for i, mod_name in enumerate(rel_means.index.to_numpy()):
-        if " (ctrl)" in mod_name:
+        if "*" in mod_name:
             colors.append(CMAP[mod_name.replace(" (ctrl)", "")])
             hatches.append('//')
         else:
@@ -153,8 +153,8 @@ def plot_scatter(rel_edges, rel_means, fig_name):
     """Plots means vs. pct. of edges changed"""
     colors, mod, mod_ctrl, enh = [], [], [], []
     for mod_name in rel_means.index.to_numpy():
-        if " (ctrl)" in mod_name:
-            colors.append(CMAP[mod_name.replace(" (ctrl)", "")])
+        if "*" in mod_name:
+            colors.append(CMAP[mod_name.replace("RC*", "RC")])
             mod_ctrl.append(mod_name)
         elif mod_name[-1] == "k":
             colors.append(CMAP[mod_name])
