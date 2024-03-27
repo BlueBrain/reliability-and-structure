@@ -21,3 +21,4 @@ Here we list the scripts provided and describe what properties they are used to 
   - [ ] BBP, should Michael's original notebook go away?
 - [ ] Compute dimension (efficiency)
   - [ ] BBP
+- [ ] Reliability clean above
