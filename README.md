@@ -42,7 +42,8 @@ If you use this software, kindly use the following BibTeX entry for citation:
 - [ ] Rename directories to consistent names.
 - [ ] Fill in required descriptions above
 - [ ] Add copy right and link to the paper
-- [ ] Add license
+- [x] Add license
+- [ ] Check license
 - [ ] Add requirements.txt
 - [ ] Installable library?
 - [ ] Link to zenodo and say something about dowloading this somewhere? Add zenodo DOI?
