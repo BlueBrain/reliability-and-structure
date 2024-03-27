@@ -16,8 +16,8 @@ The repository is structured as follows:
       - **computation:** Scripts that generate the data. [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/data_analysis/activity/computation/README.md)
       - **visualization:** Scripts or notebooks to visualize data or generate figures
 - **classification:**
-  - **PCA_method:**
-  - **network_based:**
+  - **PCA_method:** [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/classification/PCA_method/README.md)
+  - **network_based:** [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/classification/network_based/README.md)
   - **visualization:**
 
 Local README files provide a description of the scripts used for computation.
