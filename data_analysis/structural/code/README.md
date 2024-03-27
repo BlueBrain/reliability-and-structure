@@ -34,7 +34,7 @@ Here we list the scripts provided and describe what properties they are used to 
  - Config files: V5_placement_<N>k.json for N = 100, 200, 300, 400, 500, 670
  - Run script:  run_plasticity_rewiring.sh
 
-####  5. Compute simplex counts of manipulated connectomes
+####  8. Compute simplex counts of manipulated connectomes
  - All manipulations except enhance complexity
    - Base script: simplex_counts_manipulated_connectomes.py
  - For manipulations with enhanced complexity
