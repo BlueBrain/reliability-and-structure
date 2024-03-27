@@ -21,6 +21,7 @@ Here we list the scripts provided and describe what properties they are used to 
 - Run script:  run_all_nbds.sh
 
 
+
 ## TODO
 
 - [ ] Neighborhood complexity
@@ -28,7 +29,7 @@ Here we list the scripts provided and describe what properties they are used to 
   - [ ] run_simplex_lists.py
 - [ ] Manipulations
   - [ ] Manipulation generation
-  - [ ] Computing simplex counts  
+  - [ ] Computing simplex counts (simplex_counts_manipulated_connectomes.py (push me), separate for enhanced) 
 
 
 
