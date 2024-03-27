@@ -146,13 +146,14 @@ def plot_imshow(data, t, stim_times, clips, yticks, yticklabels, fig_name):
     plt.close(fig)
 
 
-def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, yticklabels, fig_name, fig_size=(8, 2)):
+def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, yticklabels, fig_name,
+                fig_size=(8, 2), marker_size=0.5):
     """Raster and firing rates"""
     t_rate = np.linspace(xlim[0], xlim[1], len(rates["EXC"]))
     fig = plt.figure(figsize=fig_size)
     ax = fig.add_subplot(1, 1, 1)
     ax.set_facecolor((0.95, 0.95, 0.95))
-    ax.scatter(spike_times, spiking_ys, c=cols, alpha=0.9, marker='.', s=0.5, edgecolor="none")
+    ax.scatter(spike_times, spiking_ys, c=cols, alpha=0.9, marker='.', s=marker_size, edgecolor="none")
     ax2 = ax.twinx()
     ax2.plot(t_rate, rates["EXC"], RED)
     ax2.plot(t_rate, rates["INH"], BLUE)
@@ -213,14 +214,10 @@ if __name__ == "__main__":
     plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/BBP_raster.png")
     plot_input_raster(*setup_input_raster(sim, t_start, t_end), "figs/paper/")
 
-    t_start, t_end = 3000, 5000
+    t_start, t_end = 1000, 16000
     sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "7ea326a9-79c8-4a24-93c3-207c89629fdf", "0", "BlueConfig"))
-    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+5_raster.png", fig_size=(4., 1.6))
+    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+5_raster.png", fig_size=(9., 1.6), marker_size=0.1)
     sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "364338ae-7913-4790-8d3a-3080fea42633", "0", "BlueConfig"))
-    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+5_ctrl_raster.png", fig_size=(4., 1.6))
-    sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "ab6764bb-9f0e-47d7-84ac-6b5114a587e5", "0", "BlueConfig"))
-    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+6_raster.png", fig_size=(4., 1.6))
-    sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "d4e2b48e-2faa-46cf-a099-2489f10a45e8", "0", "BlueConfig"))
-    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+6_ctrl_raster.png", fig_size=(4., 1.6))
+    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+5_ctrl_raster.png", fig_size=(9., 1.6), marker_size=0.1)
 
 
