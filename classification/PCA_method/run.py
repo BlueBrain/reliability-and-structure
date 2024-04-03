@@ -3,52 +3,57 @@ import numpy as np #use numpy 1.20
 import subprocess
 import os
 
-if not os.path.isfile('community_database.pkl'):
-    os.system("unzip community_database.zip")
+database_root = './classification/PCA/'
 
-if False:
-    #Load dataframe which says what the top parameters are for double selection
-    A=pd.read_pickle('selections.pkl')
-    #Load create and then load dataframe
-    _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/gen_topo_db.py', 'working_dir/config/common_config.json', 'tribe'])
-    _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/gen_topo_db.py', 'working_dir/config/common_config.json', 'neuron_info'])
-    _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/merge_database.py', 'working_dir/config/common_config.json'])
-    D=pd.read_pickle('./topological_sampling/working_dir/data/analyzed_data/community_database.pkl').iloc[:,:7]
-    n = len(D)
+if not os.path.isfile(database_root+'community_database.pkl'):
+    zenodo_address = 'https://zenodo.org/records/------'
+    os.system("wget "+zenodo_address+"/files/classification.xz")
+    os.system("tar -xf classification.xz") 
+    #os.system("unzip community_database.zip")
 
-    #Create the names of all the second selections
-    names = []
-    indices = []
-    for i in range(len(A)):
-        if pd.isnull(A['second_selection'][i]):
-        #if pd.isnull(A['first_selection'][i]):
-            #pass
-            #names.append(A['second_selection'][i]+'_'+A['selection_order'][i])
-            names.append(A['first_selection'][i]+'_'+A['selection_order'][i])
-            indices.append(i)
-        else:
-            names.append(A['first_selection'][i]+'_then_'+A['second_selection'][i]+'_'+A['selection_order'][i])
-            indices.append(i)
+### Uncomment this section to create community database from scratch using selections.pkl
+# #Load dataframe which says what the top parameters are for double selection
+# A=pd.read_pickle('selections.pkl')
+# #Load create and then load dataframe
+# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/gen_topo_db.py', 'working_dir/config/common_config.json', 'tribe'])
+# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/gen_topo_db.py', 'working_dir/config/common_config.json', 'neuron_info'])
+# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/merge_database.py', 'working_dir/config/common_config.json'])
+# D=pd.read_pickle('./topological_sampling/working_dir/data/analyzed_data/community_database.pkl').iloc[:,:7]
+# n = len(D)
 
-    #Create a map that takes an index in the exc-exc circuit to its index in the full circuit
-    D_reset = D.reset_index()
-    exc_to_all_index = D_reset[D_reset['synapse_class']=='EXC'].index
+# #Create the names of all the second selections
+# names = []
+# indices = []
+# for i in range(len(A)):
+#     if pd.isnull(A['second_selection'][i]):
+#     #if pd.isnull(A['first_selection'][i]):
+#         #pass
+#         #names.append(A['second_selection'][i]+'_'+A['selection_order'][i])
+#         names.append(A['first_selection'][i]+'_'+A['selection_order'][i])
+#         indices.append(i)
+#     else:
+#         names.append(A['first_selection'][i]+'_then_'+A['second_selection'][i]+'_'+A['selection_order'][i])
+#         indices.append(i)
 
-    #Add a column to the dataframe which is 1 for the top selected tribes, and 0 for all other tribes
-    #Do this for each element of names
-    for i in range(len(names)):
-        Z = np.zeros(n,dtype='uint8')
-        Z[[exc_to_all_index[j] for j in list(A.iloc[indices[i]])[3:]]]=1
-        D[names[i]] = Z
+# #Create a map that takes an index in the exc-exc circuit to its index in the full circuit
+# D_reset = D.reset_index()
+# exc_to_all_index = D_reset[D_reset['synapse_class']=='EXC'].index
 
-    #Save the new dataframe
-    D.to_pickle('community_database.pkl')
+# #Add a column to the dataframe which is 1 for the top selected tribes, and 0 for all other tribes
+# #Do this for each element of names
+# for i in range(len(names)):
+#     Z = np.zeros(n,dtype='uint8')
+#     Z[[exc_to_all_index[j] for j in list(A.iloc[indices[i]])[3:]]]=1
+#     D[names[i]] = Z
+
+# #Save the new dataframe
+# D.to_pickle(database_root+'community_database.pkl')
 
 ##############################################################################################
 
 
 #Load dataframe which says what the top parameters are for double selection
-D=pd.read_pickle('community_database.pkl')
+D=pd.read_pickle(database_root+'community_database.pkl')
 n = len(D)
 
 #Create the names of all the second selections
@@ -120,14 +125,15 @@ for typ in ['classifier']:
         g.close()
 
 
-if not os.path.isfile('./topological_sampling/working_dir/data/analyzed_data/community_database.pkl'):
-    os.system("mkdir topological_sampling/working_dir/data")
-    os.system("mkdir topological_sampling/working_dir/data/analyzed_data")
-    os.system("cp community_database.pkl topological_sampling/working_dir/data/analyzed_data/")
+os.system("mkdir topological_sampling/working_dir/data")
+os.system("mkdir topological_sampling/working_dir/data/analyzed_data")
+os.system("cp community_database.pkl topological_sampling/working_dir/data/analyzed_data/")
 
 if not os.path.isfile("./topological_sampling/working_dir/data/input_data/raw_spikes.npy"):
-    os.system("wget https://zenodo.org/records/4748529/files/input_data.zip")
-    os.system("unzip input_data.zip -d ./topological_sampling/working_dir/data/")
+    os.system("wget "+zenodo_address+"/files/simulation.xz")
+    os.system("tar -xvf simulation.xz working_dir -C ./topological_sampling/working_dir/data/") 
+    os.system("mv ./topological_sampling/working_dir/data/woking_dir ./topological_sampling/working_dir/data/input_data") 
+    os.system("mv ./topological_sampling/working_dir/data/input_data/raw_spikes_exc_0.npy ./topological_sampling/working_dir/data/input_data/raw_spikes.npy") 
 
 print("\n\n\n\n\nRun:")
 print("python ./topological_sampling/pipeline/sample_tribes/sample-tribes-champions.py ./topological_sampling/working_dir/config/common_config.json")
