@@ -2,7 +2,29 @@
 
 This folder contains a notebook describing a method by which to select neighbourhoods in the BlueBrian V5 excitatory-excitatory circuit (further just called "circuit"). Selecting neghbourhoods (in most cases, the number of neighbourhoods selected is 50) is necessary to determine which collections of neighbourhoods perform best in classifying activity.
 
-## Approach
+## Set up
+
+It is recommended to create a new virtual environment within which to run the pipeline, by doing:
+
+    python -m venv network_based
+    source ./network_based/bin/activate
+
+To install the necessary packages and TriDy run the code below (this mirrors the installation instructions for TriDy):
+
+    sh install.sh
+
+To compute each group of parameters, run the code below. Some parameters take much longer than others (in particular spectral and topological parameters):
+    
+    python compute_parameters.py spectral
+    python compute_parameters.py spectral_reverse
+    python compute_parameters.py simplices
+    python compute_parameters.py degrees
+    python compute_parameters.py cc
+    python compute_parameters.py dc
+    python compute_parameters.py nbc
+    python compute_parameters.py rc
+
+## Description of method
 
 Neighbourhoods (a single vertex, its adjacent vertices, and all edges among them) are selected in several ways. The first step is to compute values (such as spectral gaps and clustering coefficients) for every neighbourhood, in particular our density parameter `rc_per_nodes`, which couts the number of pairs of reciprocal connections in a neighbourhood, divided by the number of nodes in the neighbourhood.
 
