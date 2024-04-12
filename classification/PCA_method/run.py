@@ -3,10 +3,10 @@ import numpy as np #use numpy 1.20
 import subprocess
 import os
 
-database_root = './classification/PCA/'
+database_root = './PCA/'
 
 if not os.path.isfile(database_root+'community_database.pkl'):
-    zenodo_address = 'https://zenodo.org/records/------'
+    zenodo_address = 'https://zenodo.org/records/10812497'
     os.system("wget "+zenodo_address+"/files/classification.xz")
     os.system("tar -xf classification.xz") 
     #os.system("unzip community_database.zip")
@@ -53,7 +53,7 @@ if not os.path.isfile(database_root+'community_database.pkl'):
 
 
 #Load dataframe which says what the top parameters are for double selection
-D=pd.read_pickle(database_root+'community_database.pkl')
+D=pd.read_pickle(database_root+'community_database_PCA.pkl')
 n = len(D)
 
 #Create the names of all the second selections
@@ -127,7 +127,7 @@ for typ in ['classifier']:
 
 os.system("mkdir topological_sampling/working_dir/data")
 os.system("mkdir topological_sampling/working_dir/data/analyzed_data")
-os.system("cp community_database.pkl topological_sampling/working_dir/data/analyzed_data/")
+os.system("cp "+database_root+"community_database_PCA.pkl topological_sampling/working_dir/data/analyzed_data/")
 
 if not os.path.isfile("./topological_sampling/working_dir/data/input_data/raw_spikes.npy"):
     os.system("wget "+zenodo_address+"/files/simulation.xz")
