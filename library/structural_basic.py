@@ -121,7 +121,8 @@ def compute_basics_over_neighborhoods(M):
     return props
 
 def compute_basics_over_nbds_ori_and_controls(cfg):
-    '''Computes, nodes, edges, rc_edges and simplices up to dimension 3 for original and requested controls'''
+    '''Computes, nodes, edges, rc_edges and simplices up to dimension 3 on the 
+    nbds of the original and requested controls'''
     conn=load_connectome(cfg['connectome']['data_dir'], cfg['connectome']['name'])
     M=conn.matrix.astype('bool').tocsr() # remove potential weights of synapses
     print(f"The connectome has {M.diagonal().sum()} entries out of {M.sum()} in the diagonal; these will be ignored.")

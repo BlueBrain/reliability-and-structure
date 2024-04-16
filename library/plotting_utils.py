@@ -71,9 +71,9 @@ def agg_along_dims_layers(stats_dict, layers=["L23", "L4", "L5", "L6"]):
     return df
 
 
-def plot_violin(ax, y, data):
+def plot_violin(ax, y, data,hue="nbd_complexity"):
     sns.violinplot(data=data, x="dummy", y=y, ax=ax,
-                   hue="nbd_complexity", split=True, inner="quart", palette=colors, 
+                   hue=hue, split=True, inner="quart", palette=colors, 
                   hue_order=["low complexity", "high complexity"])#,linewidth=0.001)
     #ax.spines[["left", "top", "bottom"]].set_visible(False)
     #ax.yaxis.set_ticks_position("right")

@@ -75,6 +75,7 @@ def combine_metrics_to_df(dict1, dict2, metric='simplex_counts'):
     m_ori=df_ori.columns.max(); m_control=df_control.columns.max()
     max_dim=max(m_ori,m_control)
     if max_dim>m_control: df_control[np.arange(m_control+1,max_dim +1)]=0
+    if max_dim>m_ori: df_ori[np.arange(m_ori+1,max_dim +1)]=0
     return pd.concat([df_ori,df_control], axis=1, keys=['original', 'control'])            
     
 
