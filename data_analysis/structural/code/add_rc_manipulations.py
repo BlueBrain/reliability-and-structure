@@ -29,7 +29,7 @@ cfg={
     },
     "mod_params":{ # parameters of modification
         "seeds":[0,1,2,3,4,5,6,7,8,9], 
-        "blowups":[2,4, 8, 16], # factor by which the number of rc in simplices will be multiplied by
+        "blowups":[2,3, 4,5, 8, 16], # factor by which the number of rc in simplices will be multiplied by
         "compute_controls": True, # compute matrices where the same number or rc are added at random
         "compute_simplices": True, # count simplices in the generated matrices
         "path_simp_counts_original":"../../data/BBP_sc_E_E.npy"
