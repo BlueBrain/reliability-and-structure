@@ -1,0 +1,13 @@
+numpy     
+pandas     
+pyflagser
+pyflagsercount
+scipy
+networkx
+json
+pickle
+time
+subprocess
+concurrent
+os
+sys
