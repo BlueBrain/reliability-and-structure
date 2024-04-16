@@ -8,6 +8,7 @@ import sys
 sys.path.append('../../../library')
 from structural_basic import *
 
+
 def main():
     for conn in ['Celegans', 'Drosophila', 'MICrONS', 'BBP']:
         cfg={
@@ -21,7 +22,14 @@ def main():
                     'kwargs': {
                         'threads': 10,
                         'max_simplices':True,
-                    }        
+                    },
+                    "controls":{
+                        "seeds":[10],
+                        "types":{
+                            "configuration_model":{},
+                            "ER_model":{}
+                        }
+                    }
                 }
             }}
     
