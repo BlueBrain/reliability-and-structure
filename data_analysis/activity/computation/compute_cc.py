@@ -20,7 +20,9 @@ PROJ_DIR = "/gpfs/bbp.cscs.ch/data/scratch/proj9/bisimplices/bbp_workflow/7b381e
 def get_functional_data(npzf_name, conn_mat):
     """Loads ''spikes'' and oracle score from MICrONS functional data (saved to npz in `assemblyfire`),
     maps idx to the structural connectome, calculates coupling coefficients
-    and padds everything with nans to have the same shape (and index) as the structural data"""
+    and padds everything with nans to have the same shape (and index) as the structural data
+    The data is queried using 
+    https://github.com/BlueBrain/assemblyfire/blob/master/MICrONS/query_functional_data.py"""
     tmp = np.load(npzf_name)
     idx, spikes = tmp["idx"], tmp["spikes"]
     # drop duplicated idx and get oracle scores
