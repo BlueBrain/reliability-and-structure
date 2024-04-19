@@ -24,12 +24,23 @@ sims_distance=["BlobStimReliability_O1v5-SONATA_ConnRewired_mc2EE_Order1",
                "BlobStimReliability_O1v5-SONATA_ConnRewired_mc2EE_Order3",
                "BlobStimReliability_O1v5-SONATA_ConnRewired_mc2EE_Order4",
                "BlobStimReliability_O1v5-SONATA_ConnRewired_mc2EE_Order5"]
-sims_add=['BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x4',
-             'BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x4',
-             'BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x2',
-             'BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x2']
+sims_add=['BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x2',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x3',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x4',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x5', 
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x8',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_Control0x16',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x2',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x3',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x4',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x5',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x8',
+          'BlobStimReliability_O1v5-SONATA_ConnAdd_RecipStruct0x16']
 
-for sim_name in sims_base+sims_distance+sims_remove+sims_add: 
+#for sim_name in sims_base+sims_distance+sims_remove+sims_add:
+import numpy as np
+for sim_name in np.array(sims_add)[[1, 3, 7, 9]]:
+    print(f'Starting {sim_name}')
     path=f'{root}{sim_name}/working_dir/'
     connectome=conntility.ConnectivityMatrix(sp.load_npz(f'{path}connectivity.npz'), 
                                              vertex_properties=pd.read_pickle(f'{path}neuron_info.pickle'))
