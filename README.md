@@ -6,7 +6,7 @@ Study of network structure and how it shapes the robustness - reliability - effi
 
 The repository is structured as follows:
  
-- **library:** Library of functions for all the analysis related to the publication except for classficiation
+- **library:** Library of functions for all the analyses related to the publication except for classficiation
 - **data_analysis:** In this directory we provide all the scripts use to compute the different network metrics and their relation to function.
   - **structural:** Subdirectory where the analysis of purely structural properties for all connectomes and their corresponding controls is performed.
       - **code:** Scripts that generate the data.  [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/data_analysis/structural/code/README.md)
