@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 ''' 
 Generate matrices with added reciprocal connections along maximal simplices and corresponding controls
 Author(s): Daniela Egas S. 

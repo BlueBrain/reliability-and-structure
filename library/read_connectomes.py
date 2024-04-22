@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Function to read several connectomes and generate from these a ConnectivityMatrix object using conntility
 # The code is taken from:
 # https://github.com/BlueBrain/ConnectomeUtilities/blob/main/examples

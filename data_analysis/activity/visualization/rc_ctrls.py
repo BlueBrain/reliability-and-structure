@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """
 Reliability in RC +/- vs. their controls
 author: András Ecker, last update: 03.2024

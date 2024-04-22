@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 '''
 Functions to compute basic network properties for a full connectome or on its neighborhoods 
 Author(s): Daniela Egas S. 
