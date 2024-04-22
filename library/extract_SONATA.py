@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 '''Description: Functions to extract (and cut) spike trains in topo-sample format
                 using bluepysnap and SONATA circuit configs
    Author: C. Pokorny

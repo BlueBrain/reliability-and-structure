@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 ''' 
 Compute simplex counts of the full and E-E subgraphs of the original and manipulated connectomes. 
 Author(s): Daniela Egas S. 

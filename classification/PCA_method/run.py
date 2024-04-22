@@ -1,23 +1,32 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import pandas as pd 
 import numpy as np #use numpy 1.20
 import subprocess
 import os
+import conntility
+import connalysis
 
-database_root = './PCA/'
+
+database_root = './classification/PCA/'
 
 if not os.path.isfile(database_root+'community_database.pkl'):
+    print("Downloading and extracting structural data")
     zenodo_address = 'https://zenodo.org/records/10812497'
     os.system("wget "+zenodo_address+"/files/classification.xz")
     os.system("tar -xf classification.xz") 
     #os.system("unzip community_database.zip")
+    print("structural data ready")
 
 ### Uncomment this section to create community database from scratch using selections.pkl
 # #Load dataframe which says what the top parameters are for double selection
 # A=pd.read_pickle('selections.pkl')
-# #Load create and then load dataframe
-# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/gen_topo_db.py', 'working_dir/config/common_config.json', 'tribe'])
-# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/gen_topo_db.py', 'working_dir/config/common_config.json', 'neuron_info'])
-# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/merge_database.py', 'working_dir/config/common_config.json'])
+#Load create and then load dataframe
+# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/gen_topo_db.py', './topological_sampling/working_dir/config/common_config.json', 'tribe'])
+# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/gen_topo_db.py', './topological_sampling/working_dir/config/common_config.json', 'neuron_info'])
+# _=subprocess.call(['python', './topological_sampling/pipeline/gen_topo_db/merge_database.py', './topological_sampling/working_dir/config/common_config.json'])
 # D=pd.read_pickle('./topological_sampling/working_dir/data/analyzed_data/community_database.pkl').iloc[:,:7]
 # n = len(D)
 
@@ -51,6 +60,8 @@ if not os.path.isfile(database_root+'community_database.pkl'):
 
 ##############################################################################################
 
+os.system("mkdir topological_sampling/working_dir/data")
+os.system("mkdir topological_sampling/working_dir/data/analyzed_data")
 
 #Load dataframe which says what the top parameters are for double selection
 D=pd.read_pickle(database_root+'community_database_PCA.pkl')
@@ -59,6 +70,23 @@ n = len(D)
 #Create the names of all the second selections
 names = D.keys()
 indices = list(range(len(names)))
+
+if not os.path.isfile("./topological_sampling/working_dir/data/input_data/raw_spikes.npy"):
+    print("Downloading and extracting simulation data")
+    os.system("wget "+zenodo_address+"/files/simulation.xz")
+    os.system("tar -xvf simulation.xz BlobStimReliability_O1v5-SONATA_Baseline/working_dir") 
+    os.system("mv ./BlobStimReliability_O1v5-SONATA_Baseline/working_dir ./topological_sampling/working_dir/data/input_data") 
+    os.system("mv ./topological_sampling/working_dir/data/input_data/raw_spikes_exc_0.npy ./topological_sampling/working_dir/data/input_data/raw_spikes.npy") 
+    print("Simulation data ready")
+
+# Get connectivity object neighborhoods
+connectome=conntility.ConnectivityMatrix.from_h5('./topological_sampling/working_dir/data/input_data/connectome.h5')
+nbds=connalysis.network.local.neighborhood_indices(connectome.matrix, all_nodes=True)
+D['tribe']=list(connalysis.network.local.neighborhood_indices(connectome.matrix, all_nodes=True))
+D.to_pickle('./topological_sampling/working_dir/data/analyzed_data/community_database.pkl')
+ss.save_npz('./topological_sampling/working_dir/data/input_data/connectivity.npz',connectome.matrix.tocsr())
+
+
 
 
 #Create the   "Champions">"Specifiers" entry for samping_config.json
@@ -125,17 +153,7 @@ for typ in ['classifier']:
         g.close()
 
 
-os.system("mkdir topological_sampling/working_dir/data")
-os.system("mkdir topological_sampling/working_dir/data/analyzed_data")
-os.system("cp "+database_root+"community_database_PCA.pkl topological_sampling/working_dir/data/analyzed_data/")
-
-if not os.path.isfile("./topological_sampling/working_dir/data/input_data/raw_spikes.npy"):
-    os.system("wget "+zenodo_address+"/files/simulation.xz")
-    os.system("tar -xvf simulation.xz working_dir -C ./topological_sampling/working_dir/data/") 
-    os.system("mv ./topological_sampling/working_dir/data/woking_dir ./topological_sampling/working_dir/data/input_data") 
-    os.system("mv ./topological_sampling/working_dir/data/input_data/raw_spikes_exc_0.npy ./topological_sampling/working_dir/data/input_data/raw_spikes.npy") 
-
-print("\n\n\n\n\nRun:")
+print("\n\n\n\n\nPipeline is ready to be run, please execute:")
 print("python ./topological_sampling/pipeline/sample_tribes/sample-tribes-champions.py ./topological_sampling/working_dir/config/common_config.json")
 
 print("\nThen run all the following:")
@@ -151,3 +169,6 @@ print("python create_results_df.py")
 
 
 print("\nThe results will be in the pandas dataframe classification_results.pkl")
+
+
+####DATABASE needs the tribes.

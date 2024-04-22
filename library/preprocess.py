@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 '''Description: Functions to pre-process spike trains via gaussian kernel and mean centering
    Author: C. Pokorny
    Created: 11/2022

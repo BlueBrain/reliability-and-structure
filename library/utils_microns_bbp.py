@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 ''' 
 Utitly functions in ordder to add activity based node property conn ConnetivityMatrix objects for BBP and MICrONS
 Author(s): Daniela Egas S. 

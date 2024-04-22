@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 ''' 
 Compute neighborhood complexity of (E-E) BBP V5 connectome and controls
 Note: This script generates some duplicated data. I have decided to keep it, because the files are small and potentially useful 

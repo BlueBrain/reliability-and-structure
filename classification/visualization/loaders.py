@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """
 Functions that load classification accuracies from the PCA and TriDy classification methods and formats them for plotting
 authors:Daniela Egas Santander, Jānis Lazovskis

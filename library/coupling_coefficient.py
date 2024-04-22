@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """
 Functions that calculate coupling coefficent and normalize them
 (Pearson correlation of binned spikes/calcium traces with the mean centered population average)
