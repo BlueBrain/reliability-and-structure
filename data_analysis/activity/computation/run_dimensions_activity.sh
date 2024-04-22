@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH --mem 350G
-#SBATCH --time=12:00:00
+#SBATCH --time=6:00:00
 #SBATCH --exclusive 
 #SBATCH --job-name=correlations
 #SBATCH --account=proj9
