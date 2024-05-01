@@ -21,6 +21,8 @@ The scripts included here are:
 
 
 # TODO:
+- [ ] Add title and quick description
+- [ ] Push visualization files 
 - [X] community_database.pkl is already in the zenodo.  Can this code be structured as the user gives a path to the zenodo files to run this? DONE: but needs testing once the zenodo is ready
 - [X] Add quick description of create_results_df.py
 - [X] Add quick description of run.py
