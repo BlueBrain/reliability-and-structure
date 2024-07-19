@@ -14,7 +14,7 @@ Here we list the scripts provided and describe what properties they are used to 
   - Run script: 
 
 ### Toposample simulations (long sim, single seed):
-####  1. Extract input data for running TriDy/TopoSampling [classification](../../classification) pipeline
+####  1. Extract input data for running TriDy/TopoSampling [classification](../../../classification) pipeline
   - Jupyter notebook: [toposample_preparation.ipynb](./toposample_preparation.ipynb)
 
 
