@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 '''Functions to select simulations, compute reliability and bootstrap samples'''
 import numpy as np
 import tqdm

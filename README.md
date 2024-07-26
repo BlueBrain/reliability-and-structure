@@ -1,5 +1,4 @@
-# Reliability and structure (SHOULD WE CHANGE THIS NAME?)
-
+# Efficiency and reliability in biological neural network architectures
 
 Study of network structure and how it shapes the robustness - reliability - efficiency struggle in biological neural networks as described in this publication. 
 
@@ -7,7 +6,7 @@ Study of network structure and how it shapes the robustness - reliability - effi
 
 The repository is structured as follows:
  
-- **library:** Library of functions for all the analysis related to the publication except for classficiation
+- **library:** Library of functions for all the analyses related to the publication except for classficiation
 - **data_analysis:** In this directory we provide all the scripts use to compute the different network metrics and their relation to function.
   - **structural:** Subdirectory where the analysis of purely structural properties for all connectomes and their corresponding controls is performed.
       - **code:** Scripts that generate the data.  [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/data_analysis/structural/code/README.md)
@@ -15,10 +14,10 @@ The repository is structured as follows:
   - **activity:** Subdirectory where the analysis of properties that relate to function or link function to structure in BBP and MICrONS is performed.
       - **computation:** Scripts that generate the data. [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/data_analysis/activity/computation/README.md)
       - **visualization:** Scripts or notebooks to visualize data or generate figures
-- **classification:**
+- **classification:** Pipeline for stimulus classification with two classes of featurizations based on: PCA of the activity or network properties of active subgraphs. 
   - **PCA_method:** [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/classification/PCA_method/README.md)
   - **network_based:** [README](https://github.com/danielaegassan/reliability_and_structure/blob/main/classification/network_based/README.md)
-  - **visualization:**
+  - **visualization:** Visualization of the classficiation results.
 
 Local README files provide a description of the scripts used for computation.
  
@@ -41,11 +40,12 @@ If you use this software, kindly use the following BibTeX entry for citation:
 # TODO:
 - [ ] Rename directories to consistent names.
 - [ ] Fill in required descriptions above
-- [ ] Add copy right and link to the paper
+- [x] Add copy right and link to the paper
 - [x] Add license
-- [ ] Check license
+- [x] Check license
+- [ ] Add license to individual files
 - [ ] Add requirements.txt
 - [ ] Installable library?
 - [ ] Link to zenodo and say something about dowloading this somewhere? Add zenodo DOI?
-- [ ] Name?
+- [x] Name?
 - [ ] Delete unnecessary files

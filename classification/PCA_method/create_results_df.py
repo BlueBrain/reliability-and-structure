@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import os
 import pandas as pd
 import h5py

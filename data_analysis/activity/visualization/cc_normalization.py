@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Blue Brain Project / EPFL
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """
 Global vs. per-cell normalization of raw CC values
 author: András Ecker, last update: 02.2024
