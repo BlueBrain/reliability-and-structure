@@ -98,6 +98,32 @@ def setup_raster(sim, t_start, t_end):
     return spike_times - t_start, spiking_ys, cols, rates, [0, t_end - t_start], ylim, yticks, yticklabels
 
 
+def setup_raster_v2(sim, t_start, t_end):
+    """Organize spiking EXC gids by depth (similar to `setup_raster()` above,
+    but closer to the `imshow()` plotting style of MICrONS)"""
+    c = sim.circuit
+    df = c.cells.get(c.cells.ids(), ["synapse_class", "layer", "y"])
+    df = df.loc[df["synapse_class"] == "EXC"]
+    spikes = sim.spikes.get(t_start=t_start, t_end=t_end, gids=df.index.to_numpy())
+    spike_times, spiking_gids = spikes.index.to_numpy(), spikes.to_numpy()
+    unique_gids, idx = np.unique(spiking_gids, return_inverse=True)
+    df = df.loc[df.index.isin(unique_gids)]
+    df.sort_values("y", inplace=True)
+    df["row"] = np.arange(len(df))
+    yticks, yticklabels = [], []
+    for layer in [6, 5, 4, 23]:
+        tmp = df.loc[df["layer"] == layer] if layer != 23 else df.loc[df["layer"].isin([2, 3])]
+        yticks.append(tmp["row"].mean())
+        yticklabels.append("L%s" % layer)
+    unique_ys = np.zeros_like(unique_gids, dtype=np.int64)
+    for i, gid in enumerate(unique_gids):
+        unique_ys[i] = df.at[gid, "row"]
+    spiking_ys = unique_ys[idx]
+    rates = {"EXC": _calc_rate(spike_times, len(unique_gids), t_start, t_end)}
+    return spike_times - t_start, spiking_ys, np.full(spiking_ys.shape, RED), rates,\
+        [0, t_end - t_start], [-1, len(df) + 1], yticks, yticklabels
+
+
 def setup_input_raster(sim, t_start, t_end):
     """Organize gids by rate and get stimulus train"""
     # spikes
@@ -155,8 +181,11 @@ def plot_raster(spike_times, spiking_ys, cols, rates, xlim, ylim, yticks, ytickl
     ax.set_facecolor((0.95, 0.95, 0.95))
     ax.scatter(spike_times, spiking_ys, c=cols, alpha=0.9, marker='.', s=marker_size, edgecolor="none")
     ax2 = ax.twinx()
-    ax2.plot(t_rate, rates["EXC"], RED)
-    ax2.plot(t_rate, rates["INH"], BLUE)
+    if "INH" in rates:
+        ax2.plot(t_rate, rates["EXC"], RED)
+        ax2.plot(t_rate, rates["INH"], BLUE)
+    else:
+        ax2.plot(t_rate, rates["EXC"], "black")
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.set_yticks(yticks)
@@ -211,10 +240,10 @@ if __name__ == "__main__":
 
     t_start, t_end = 19200, 21200  # ms
     sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "7b381e96-91ac-4ddd-887b-1f563872bd1c", "0", "BlueConfig"))
-    plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/BBP_raster.png")
+    plot_raster(*setup_raster_v2(sim, t_start, t_end), "figs/paper/BBP_raster.png")
     plot_input_raster(*setup_input_raster(sim, t_start, t_end), "figs/paper/")
 
-    t_start, t_end = 1000, 16000
+    t_start, t_end = 1000, 17000
     sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "7ea326a9-79c8-4a24-93c3-207c89629fdf", "0", "BlueConfig"))
     plot_raster(*setup_raster(sim, t_start, t_end), "figs/paper/RC+5_raster.png", fig_size=(9., 1.6), marker_size=0.1)
     sim = Simulation(os.path.join(BBP_FN_DATA_DIR, "364338ae-7913-4790-8d3a-3080fea42633", "0", "BlueConfig"))
