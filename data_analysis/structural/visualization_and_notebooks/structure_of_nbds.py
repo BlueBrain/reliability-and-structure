@@ -27,8 +27,8 @@ PALETTE = {"original": "indianred",  # cmap(3),
            "configuration_model": cmap(2),
            "ER": cmap(0),
            "ER_shuffle": cmap(0),
-           "distance": cmap(1),
-           "run_DD2": cmap(1)}
+           "distance": "tab:brown",
+           "run_DD2": "tab:brown"}
 
 
 def load_data():
