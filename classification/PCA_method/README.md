@@ -1,6 +1,7 @@
 ### PCA featurization 
 
-This is the pipeline used to run the classificaiton experiment with PCA featurization.
+Here we describe how to run the classification pipeline with PCA featurization only.  The selection process of the neighborhoods used for classification is explained in more detail in the network featurization section 
+[here.](https://github.com/danielaegassan/reliability_and_structure/blob/main/classification/network_based/README.md)
 
 It is recommended to create a new virtual environment within which to run the pipeline, by doing:
 
