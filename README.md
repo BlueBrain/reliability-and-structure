@@ -1,4 +1,4 @@
-# Efficiency and reliability in biological neural network architectures
+# Heterogeneous and non-random cortical connectivity undergirds efficient, robust and reliable neural codes
 
 Study of network structure and how it shapes the robustness - reliability - efficiency struggle in biological neural networks as described in this publication. 
 
@@ -27,7 +27,7 @@ If you use this software, kindly use the following BibTeX entry for citation:
 
 ```
 @article{egas2024efficiency,
-  title={Efficiency and reliability in biological neural network architectures},
+  title={Heterogeneous and non-random cortical connectivity undergirds efficient, robust and reliable neural codes},
   author={Egas Santander, Daniela and Pokorny, Christoph and Ecker, Andr{\'a}s and Lazovskis, J{\=a}nis and Santoro, Matteo and Smith, Jason P and Hess, Kathryn and Levi, Ran and Reimann, Michael W},
   journal={bioRxiv},
   pages={2024--03},
