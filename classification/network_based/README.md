@@ -1,6 +1,8 @@
-# About
+# Network featurization
 
-This folder contains a notebook describing a method by which to select neighbourhoods in the BlueBrian V5 excitatory-excitatory circuit (further just called "circuit"). Selecting neghbourhoods (in most cases, the number of neighbourhoods selected is 50) is necessary to determine which collections of neighbourhoods perform best in classifying activity.
+This section describes how to run the classiciation pipeline using several network metrics as features, as opposed to PCA of the activity.
+
+We refer to the BlueBrian excitatory-excitatory circuit just as "circuit" and describe how neghbourhoods where selected (in most cases, the number of neighbourhoods selected is 50) in order to then classify stimuli and adddress the accuracy of classification.
 
 ## Set up
 
