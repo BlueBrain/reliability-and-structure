@@ -36,16 +36,3 @@ If you use this software, kindly use the following BibTeX entry for citation:
   doi = {10.1101/2024.03.15.585196}
 }
 ```
-
-# TODO:
-- [ ] Rename directories to consistent names.
-- [ ] Fill in required descriptions above
-- [x] Add copy right and link to the paper
-- [x] Add license
-- [x] Check license
-- [ ] Add license to individual files
-- [ ] Add requirements.txt
-- [ ] Installable library?
-- [ ] Link to zenodo and say something about dowloading this somewhere? Add zenodo DOI?
-- [x] Name?
-- [ ] Delete unnecessary files
