@@ -36,13 +36,17 @@ markers={"all":"o",
 alpha=0.25
 
 # Plotting functions 
-def scatter_and_regress(ax,x, y, color, marker='o', marker_size=marker_size, label=None, color_regress=None, alpha=0.5):
+def scatter_and_regress(ax,x, y, color, marker='o', marker_size=marker_size, label=None, color_regress=None, alpha=0.5, 
+                       add_rvalue=True, add_pvalue=False):
     x=x.to_numpy(); y=y.to_numpy() 
     mask=np.logical_and(~np.isnan(y), ~np.isnan(x))
     regress=stats.linregress(x[mask],y[mask])
     if color_regress is None: color_regress=color
-    ax.plot(x, x*regress.slope+regress.intercept, color=color_regress, label=f"{regress.rvalue:.2f}")
-    ax.scatter(x, y, c=color, marker=marker,s=marker_size, label=f"{label}",alpha=alpha, zorder=10, rasterized=True )
+    r_label=None if not(add_rvalue) else f"r: {regress.rvalue:.2f}"
+    p_label=None if not(add_pvalue) else f"p: {regress.pvalue:.2f}"
+    reg_label=', '.join(filter(None, (r_label, p_label)))
+    ax.plot(x, x*regress.slope+regress.intercept, color=color_regress, label=reg_label)
+    ax.scatter(x, y, c=color, marker=marker,s=marker_size, label=label,alpha=alpha, zorder=10, rasterized=True )
     h, l = ax.get_legend_handles_labels()
     return ax, h, l
 
@@ -90,7 +94,7 @@ def plot_and_fill(ax, data, label, color, ms, marker, alpha):
     ax.plot(data["mean"], marker=marker, label=label, ms=ms)
     ax.fill_between(data.index, data["mean"]-data["sem"], data["mean"]+data["sem"], alpha=alpha)
 
-def kde_and_regress(ax, df, x, y, color):
+def kde_and_regress(ax, df, x, y, color, return_stats=False):
     x=df[x]; y=df[y] 
     mask=np.logical_and(~np.isnan(y), ~np.isnan(x))
     regress=stats.linregress(x[mask],y[mask])
@@ -99,4 +103,8 @@ def kde_and_regress(ax, df, x, y, color):
     ax.set_ylabel('');     ax.set_xlabel('')
     ax.spines[["right", "top"]].set_visible(False)
     h, l = ax.get_legend_handles_labels()
-    return ax, h, l
+    if return_stats: 
+        return ax, h, l, regress
+    else:
+        return ax, h, l
+        

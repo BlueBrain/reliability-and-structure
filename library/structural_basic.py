@@ -30,6 +30,8 @@ def load_connectome(data_dir, connectome):
         return load_microns(data_dir).index("cell_type").isin(exc_types)
     elif connectome == "BBP":
         return conntility.ConnectivityMatrix.from_h5(f'{data_dir}/connectome_BBP_V5.h5').index("synapse_class").isin("EXC")
+    elif connectome in ["MICrONS_EM_error_precision", "MICrONS_EM_error_recall", "MICrONS_EM_error_partner"]:
+        return conntility.ConnectivityMatrix.from_h5(f'{data_dir}/{connectome}.h5')
 
 def compute_basic_props(cfg):
     "Compute network properties for connectome and controls" 
