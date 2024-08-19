@@ -31,7 +31,7 @@ Here we list the scripts provided and describe what properties they are used to 
 - Run script:  run_all_simplex_lists.sh
 
 ####  6. Generate manipulations with reduced complexity 
- - Base script: **add me**
+ - Base script: Using connectome manipulator package
    
 ####  7. Generate manipulations with removed reciprocal connections 
  - Base script: **add me**
@@ -55,16 +55,11 @@ Here we list the scripts provided and describe what properties they are used to 
 
 ## TODO
 
-- [x] Neighborhood complexity
-- [x] run_max_simplex_lists.py
-- [ ] run_simplex_lists.py
 - [ ] Manipulations
   - [x] Add rc
   - [ ] Remove rc
   - [x] Enhance complexity
-  - [ ] Reduce complexity
-  - [ ] Computing simplex counts (simplex_counts_manipulated_connectomes.py (push me), separate for enhanced) 
-
+  - [ ] Reduce complexity, add link to connectome manipulator
 
 
 
