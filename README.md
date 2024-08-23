@@ -36,3 +36,10 @@ If you use this software, kindly use the following BibTeX entry for citation:
   doi = {10.1101/2024.03.15.585196}
 }
 ```
+
+
+## Funding & Acknowledgment
+
+The development of this software was supported by funding to the Blue Brain Project, a research center of the École polytechnique fédérale de Lausanne (EPFL), from the Swiss government’s ETH Board of the Swiss Federal Institutes of Technology.
+
+Copyright (c) 2024 Blue Brain Project/EPFL
